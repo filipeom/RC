@@ -96,6 +96,29 @@ find_user_and_check_pass(std::string user, std::string pass) {
 bool
 check_if_bs_exists(std::string file, std::string ip,
     std::string port) {
+  std::string line;
+  std::ifstream ifile;
+
+  ifile.open(file,std::ios::in);
+  if(!ifile.is_open()){
+    std::cout << "Could not open " + file << std::endl;
+    exit(EXIT_FAILURE);
+  }
+
+  while(std::getline(ifile,line)) {
+    std::string bs_ip, bs_port;
+    int space;
+    
+    space = line.find(" ");
+    bs_ip = line.substr(0, space);
+    bs_port = line.substr(space + 1, (line.size() - 1) - (space + 1));
+
+    if((ip.compare(bs_ip) == 0) && (port.compare(bs_port) == 0)) {
+      ifile.close();
+      return true; 
+    }
+  }
+  ifile.close();
   return false;
 }
 
