@@ -278,16 +278,6 @@ get_bs_for_user(std::string &ip, std::string &port) {
 }
 
 void
-add_user_dir(std::string user, std::string ip, std::string port,
-    std::string dir, std::string files) {
-  std::string line;
-
-  line = user+" "+ip+" "+port+" "+dir+" "+files;
-  write_to_file_append("backup_list.txt", line);
-  return;
-}
-
-void
 send_bs_user_details(std::string msg, std::string ip, 
     std::string port) {
   char buffer[128] = {0};
@@ -322,22 +312,24 @@ backup_user_dir() {
   int N;
   std::string dirname, file_list;
   std::string bs_ip, bs_port;
+  std::string files_updated;
   //WE NEED TO READ TRAILING " " FROM USER PROTOCOL MSG
   read_msg(client_fd, 1);
 
   file_list = read_file_list(dirname, N);
   if(find_user_dir(dirname, active_user, bs_ip, bs_port)) {
-    //ASK BS FOR FILES
-    std::cout << bs_ip << " " << bs_port << std::endl;
+    //ASK BS FOR FILES AND PUT IN files_updated
+    send_client_bs_and_file_list(bs_ip, bs_port, N, file_list);
+    return;
   } else if(find_user_bs(active_user, bs_ip, bs_port)) {
     //IF USER IS REGISTERED IN A BS SEND FILES THERE
-    std::cout << bs_ip << " " << bs_port << std::endl;
   } else {
     get_bs_for_user(bs_ip, bs_port);
     send_bs_user_details(find_string(active_user, "cs_user_list.txt"), bs_ip, bs_port);
-    add_user_dir(active_user, bs_ip, bs_port, dirname, file_list);
-    send_client_bs_and_file_list(bs_ip, bs_port, N, file_list);
   }
+  write_to_file_append("backup_list.txt",
+      active_user+" "+bs_ip+ " "+bs_port+" "+dirname+" "+file_list);
+  send_client_bs_and_file_list(bs_ip, bs_port, N, file_list);
   return;
 }
 

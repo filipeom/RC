@@ -162,6 +162,7 @@ backup() {
           files_resp = process_cs_backup_reply(bs_ip, bs_port, N);
           close(cs_tcp_fd);
           std::cout << bs_ip<<" "<<bs_port<<" "<<N<<" "<<files_resp;
+          //TODO:
           connect_to_backup_server(bs_tcp_fd, bs_ip, 
               bs_port, bs_tcp_addr);
           write_msg(bs_tcp_fd, auth_str);
