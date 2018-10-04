@@ -105,10 +105,10 @@ check_if_bs_exists(std::string file, std::string ip,
     exit(EXIT_FAILURE);
   }
 
-  while(std::getline(ifile,line)) {
+  while(std::getline(ifile, line)) {
     std::string bs_ip, bs_port;
     int space;
-    
+
     space = line.find(" ");
     bs_ip = line.substr(0, space);
     bs_port = line.substr(space + 1, (line.size() - 1) - (space + 1));
@@ -133,7 +133,7 @@ register_backup_server(int fd, struct sockaddr_in addr,
   space2 = str.find(" ", space1+1);
   ip = str.substr(space1 + 1, space2 - (space1 + 1));
   port = str.substr(space2 + 1, (str.size()-1) - (space2+1));
- 
+
   //TODO: RGR ERR
   if(check_if_bs_exists("bs_list.txt", ip, port)) {
     reply = "RGR NOK\n";
@@ -141,7 +141,7 @@ register_backup_server(int fd, struct sockaddr_in addr,
     write_to_file_append("bs_list.txt", ip + " " + port);
     reply = "RGR OK\n";
   }
-  
+
   sendto(fd, reply.c_str(), reply.size(), 0,
       (struct sockaddr*)&addr,
       addrlen);
@@ -149,9 +149,36 @@ register_backup_server(int fd, struct sockaddr_in addr,
   return;
 }
 
+bool
+delete_bs_if_exists(std::string filename, std::string ip,
+    std::string port) {
+  if(check_if_bs_exists(filename, ip, port)){
+    return false;
+  }
+
+  return false;
+}
+
 void
 unregister_backup_server(int fd, struct sockaddr_in addr, 
     socklen_t addrlen, std::string str) {
+  std::string ip, port, reply;
+  int space1, space2;
+
+  space1 = str.find(" ");
+  space2 = str.find(" ", space1+1);
+  ip = str.substr(space1 + 1, space2 - (space1 + 1));
+  port = str.substr(space2 + 1, (str.size()-1) - (space2+1));
+
+  if(delete_bs_if_exists("bs_list.txt", ip, port)) {
+    //delete it
+    reply = "UAR OK\n";
+    //send to bs status
+    return; 
+  }
+  //should never happen
+  reply = "UAR NOK\n";
+  //send to bs status
   //TODO: ALL
   return;
 }
@@ -166,7 +193,7 @@ auth_user() {
   read_msg(client_fd, 1);
   pass = read_msg(client_fd, 8);
   read_msg(client_fd, 1);
-  
+
   response = find_user_and_check_pass(user, pass);
   write_msg(client_fd, response);
   return;
@@ -221,7 +248,7 @@ main(int argc, char **argv) {
   std::string protocol;
 
   parse_input(argc, argv);
-  
+
   //TODO: HANDL SIG_CHLD? WHEN CHILD PROCESSESS DIE
 
   if((pid = fork()) == -1) {
@@ -244,7 +271,7 @@ main(int argc, char **argv) {
         protocol = read_msg(client_fd, 3);
         if(protocol.compare("AUT") == 0) {
           auth_user();
-          
+
           protocol.clear(); protocol = read_msg(client_fd, 3);
           if(protocol.compare("DLU") == 0) {
             delete_user();
@@ -260,7 +287,7 @@ main(int argc, char **argv) {
             delete_dir();
           }
         }
-        
+
         close(client_fd);
         exit(EXIT_SUCCESS);
       }
