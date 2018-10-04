@@ -149,20 +149,14 @@ register_backup_server(int fd, struct sockaddr_in addr,
   return;
 }
 
-bool
-delete_bs_if_exists(std::string filename, std::string ip,
-    std::string port) {
-  if(check_if_bs_exists(filename, ip, port)){
-    return false;
-  }
-
-  return false;
-}
 
 void
 unregister_backup_server(int fd, struct sockaddr_in addr, 
     socklen_t addrlen, std::string str) {
   std::string ip, port, reply;
+  std::string line, search_string;
+  std::ifstream ifile;
+  std::ofstream ofile;
   int space1, space2;
 
   space1 = str.find(" ");
@@ -170,12 +164,30 @@ unregister_backup_server(int fd, struct sockaddr_in addr,
   ip = str.substr(space1 + 1, space2 - (space1 + 1));
   port = str.substr(space2 + 1, (str.size()-1) - (space2+1));
 
-  if(delete_bs_if_exists("bs_list.txt", ip, port)) {
-    //delete it
-    reply = "UAR OK\n";
-    //send to bs status
-    return; 
+  search_string = ip + " " + port;
+
+  ifile.open("bs_list.txt");
+  ofile.open("temp.txt");
+
+  while(std::getline(ifile, line)) {
+    if(line.compare(search_string) != 0)
+      ofile << line << std::endl;
+    else
+      reply = "UAR OK\n";
   }
+  ofile.close();
+  ifile.close();
+  remove("bs_list.txt");
+  rename("temp.txt", "bs_list.txt");
+
+  sendto(fd, reply.c_str(), reply.size(), 0,
+      (struct sockaddr*) &addr, addrlen);
+
+  //TODO UAR NOK/ERR
+  return; 
+
+
+
   //should never happen
   reply = "UAR NOK\n";
   //send to bs status
