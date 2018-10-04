@@ -14,6 +14,7 @@
 #include <errno.h>
 #include "tcp.h"
 #include "udp.h"
+#include "common.h"
 #define PORT 58043
 
 int CSport = 0;
@@ -92,6 +93,12 @@ find_user_and_check_pass(std::string user, std::string pass) {
   return rply;
 }
 
+bool
+check_if_bs_exists(std::string file, std::string ip,
+    std::string port) {
+  return false;
+}
+
 void
 register_backup_server(int fd, struct sockaddr_in addr, 
     socklen_t addrlen, std::string str) {
@@ -103,9 +110,15 @@ register_backup_server(int fd, struct sockaddr_in addr,
   space2 = str.find(" ", space1+1);
   ip = str.substr(space1 + 1, space2 - (space1 + 1));
   port = str.substr(space2 + 1, (str.size()-1) - (space2+1));
-  std::cout << ip << " " << port << std::endl;
+ 
+  //TODO: RGR ERR
+  if(check_if_bs_exists("bs_list.txt", ip, port)) {
+    reply = "RGR NOK\n";
+  } else {
+    write_to_file_append("bs_list.txt", ip + " " + port);
+    reply = "RGR OK\n";
+  }
   
-  reply = "RGR OK\n";
   sendto(fd, reply.c_str(), reply.size(), 0,
       (struct sockaddr*)&addr,
       addrlen);
