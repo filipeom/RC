@@ -99,7 +99,7 @@ check_if_bs_exists(std::string file, std::string ip,
   std::string line;
   std::ifstream ifile;
 
-  ifile.open(file,std::ios::in);
+  ifile.open(file, std::ios::in);
   if(!ifile.is_open()){
     std::cout << "Could not open " + file << std::endl;
     exit(EXIT_FAILURE);
