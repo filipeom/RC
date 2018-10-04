@@ -14,6 +14,7 @@
 #include <errno.h>
 #include "tcp.h"
 #include "udp.h"
+#include "common.h"
 #define PORT_CS 58043
 #define PORT_BS 59043
 
@@ -139,17 +140,39 @@ exit_backup_server(int signum) {
 }
 
 void
+add_user(std::string msg) {
+  std::string auth, auth_reply;
+
+  auth = msg.substr(4, msg.size()-4);
+  write_to_file_append("bs_user_list.txt", auth);
+  
+  auth_reply = "LUR OK\n";
+  sendto(bs_udp_fd, auth_reply.c_str(), auth_reply.size(), 0,
+      (struct sockaddr*)&cs_udp_client_addr,
+      cs_client_addr_len);
+  return;  
+}
+
+void
 auth_user() {
   //WE NEED TO READ TRAILING " " FROM USER PROTOCOL MSG
-  //MAKE COMPATIBLE WITH LSU AND AUT COMMANDS IF POSSIBLE!
-  //TODO: ALL
+  std::string user, pass;
+  std::string response;
+
+  read_msg(client_fd, 1);
+  user = read_msg(client_fd, 5);
+  read_msg(client_fd, 1);
+  pass = read_msg(client_fd, 8);
+  read_msg(client_fd, 1);
+  
+  response = find_user_and_check_pass("bs_user_list.txt", user, pass);
+  write_msg(client_fd, response);
   return;
 }
 
 void
 receive_user_files() {
   //WE NEED TO READ TRAILING " " FROM USER PROTOCOL MSG
-  //TODO: ALL
   return;  
 }
 
@@ -224,7 +247,7 @@ main(int argc, char **argv) {
       if(strncmp(buffer, "LSF", 3) == 0) {
           
       } else if(strncmp(buffer, "LSU", 3) == 0) {
-        auth_user(); 
+        add_user(buffer); 
       } else if(strncmp(buffer, "DLB", 3) == 0) {
       
       }

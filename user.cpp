@@ -20,9 +20,14 @@ int CSport = 0;
 bool logged = false;
 std::string CSname, auth_str;
 
+/* CS SERVER TCP */
 int cs_tcp_fd;
 struct hostent *cs_host;
 struct sockaddr_in cs_tcp_addr;
+
+/* BS SERVER TCP */
+int bs_tcp_fd;
+struct sockaddr_in bs_tcp_addr;
 
 void
 parse_input(int argc, char **argv) {
@@ -99,9 +104,41 @@ deluser() {
   return;
 }
 
+
+std::string
+process_cs_backup_reply(std::string &ip, std::string &port, int &N) {
+  int i;
+  std::string files;
+  read_msg(cs_tcp_fd, 1);
+
+  ip = read_string(cs_tcp_fd);
+  port = read_string(cs_tcp_fd);
+  N = stoi(read_string(cs_tcp_fd));
+
+  for(i = 0; i < N; i++) {
+    std::string line;
+    std::string filename, date, time, size;
+    
+    filename = read_string(cs_tcp_fd);
+    date = read_string(cs_tcp_fd);
+    time = read_string(cs_tcp_fd);
+    size = read_string(cs_tcp_fd);
+
+    line = filename+" "+date+" "+time+" "+size+" ";
+    files.append(line);
+  }
+  //READ TRAILING \n
+  read_msg(cs_tcp_fd, 1);
+  files.append("\n");
+  return files;
+}
+
 void
 backup() {
-  std::string auth_reply, dirname, file_list;
+  int N=0;
+  std::string auth_reply, bck_reply; 
+  std::string dirname, file_list;
+  std::string bs_ip, bs_port, files_resp;
   std::cin >> dirname;
 
   if(logged) {
@@ -119,13 +156,25 @@ backup() {
         /* THIS STRING ENDS WITH " \n"(space and newline chars) */
         file_list = get_files(dirname);
         write_msg(cs_tcp_fd, file_list);
+  
+        bck_reply = read_msg(cs_tcp_fd, 3);
+        if(bck_reply.compare("BKR") == 0) {
+          files_resp = process_cs_backup_reply(bs_ip, bs_port, N);
+          close(cs_tcp_fd);
+          std::cout << bs_ip<<" "<<bs_port<<" "<<N<<" "<<files_resp;
+          connect_to_backup_server(bs_tcp_fd, bs_ip, 
+              bs_port, bs_tcp_addr);
+          write_msg(bs_tcp_fd, auth_str);
+          std::cout << read_msg(bs_tcp_fd, 7);
+          close(bs_tcp_fd);
+        }
+        
       } else {
         read_msg(cs_tcp_fd, 1);
         std::cout << "[!] Something wrong: AUT NOK\n";
       }
 
     }
-    close(cs_tcp_fd);
   } else {
     std::cout << "[!] No available session to backup from.\n";
   }

@@ -21,4 +21,4 @@ void create_central_server_tcp(int &fd, struct sockaddr_in &addr,
 void connect_to_central_server(int &fd, struct sockaddr_in &addr, 
     struct hostent*host, std::string name, int port);
 void create_backup_server_tcp(int &fd, struct sockaddr_in &addr, int port);
-void connect_to_backup_server(int &fd, std::string ip, std::string port, struct sockaddr_in);
+void connect_to_backup_server(int &fd, std::string ip, std::string port, struct sockaddr_in &addr);

@@ -31,6 +31,7 @@ struct sockaddr_in cs_udp_addr;
 /*BS UDP SERVER */
 int bs_udp_fd;
 struct sockaddr_in bs_udp_addr;
+int bs_addrlen;
 
 /*BS UDP CLIENT */
 int bs_udp_client_fd;
@@ -62,38 +63,6 @@ parse_input(int argc, char **argv) {
     CSport = PORT;
   }
   return;
-}
-
-std::string
-find_user_and_check_pass(std::string user, std::string pass) {
-  std::string username, password, line, rply; 
-  std::ifstream ifile;
-  std::ofstream ofile;
-
-  ifile.open("cs_user_list.txt");
-  while(std::getline(ifile, line)) {
-    username = line.substr(0,5);
-    password = line.substr(6,8);
-
-    if(user.compare(username) == 0) {
-      if(pass.compare(password) == 0) { 
-        std::cout << "User: " << user << std::endl;
-        active_user.clear(); active_user = user;
-        rply = "AUR OK\n";
-      } else {
-        rply = "AUR NOK\n";
-      }
-      return rply;
-    }
-  }
-  ifile.close();
-  ofile.open("cs_user_list.txt", std::ios::app);
-  ofile << user << " " << pass << std::endl;
-  ofile.close();
-  std::cout << "New user: " << user << std::endl;
-  active_user.clear(); active_user = user;
-  rply = "AUR NEW\n";
-  return rply;
 }
 
 bool
@@ -137,7 +106,7 @@ register_backup_server(int fd, struct sockaddr_in addr,
   if(check_if_bs_exists("bs_list.txt", ip, port)) {
     reply = "RGR NOK\n";
   } else {
-    write_to_file_append("bs_list.txt", ip + " " + port);
+    write_to_file_append("bs_list.txt", ip + " " + port+"\n");
     std::cout << "+BS: " + ip + " " + port << std::endl;
     reply = "RGR OK\n";
   }
@@ -201,7 +170,8 @@ auth_user() {
   pass = read_msg(client_fd, 8);
   read_msg(client_fd, 1);
 
-  response = find_user_and_check_pass(user, pass);
+  response = find_user_and_check_pass("cs_user_list.txt", user, pass);
+  active_user.clear(); active_user = user;
   write_msg(client_fd, response);
   return;
 }
@@ -212,18 +182,6 @@ delete_user() {
   //WE NEED TO READ TRAILING " " FROM USER PROTOCOL MSG
   //TODO: ALL
   return;
-}
-
-std::string
-read_string(int fd) {
-  std::string c, str;
-
-  c = read_msg(fd, 1);
-  while(c.compare(" ")) {
-    str.append(c);
-    c = read_msg(fd, 1);
-  }
-  return str;
 }
 
 std::string
@@ -320,6 +278,46 @@ get_bs_for_user(std::string &ip, std::string &port) {
 }
 
 void
+add_user_dir(std::string user, std::string ip, std::string port,
+    std::string dir, std::string files) {
+  std::string line;
+
+  line = user+" "+ip+" "+port+" "+dir+" "+files;
+  write_to_file_append("backup_list.txt", line);
+  return;
+}
+
+void
+send_bs_user_details(std::string msg, std::string ip, 
+    std::string port) {
+  char buffer[128] = {0};
+  std::string protocol;
+
+  protocol = "LSU " + msg+"\n";
+  get_backup_server_udp(cs_udp_fd, ip, port, 
+      bs_udp_addr, bs_addrlen); 
+  sendto(cs_udp_fd, protocol.c_str(), protocol.size(), 0,
+      (struct sockaddr*)&bs_udp_addr,
+      bs_addrlen);
+  recvfrom(cs_udp_fd, buffer, sizeof(buffer), 0,
+      (struct sockaddr*)&bs_udp_addr,
+      (socklen_t*)&bs_addrlen);
+  std::cout << buffer;
+  return; 
+}
+
+void
+send_client_bs_and_file_list(std::string ip, std::string port,
+    int N, std::string file_list) {
+  std::string msg;
+
+  msg = "BKR "+ip+" "+port+" "+std::to_string(N)+" ";
+  msg.append(file_list);
+  write_msg(client_fd, msg);
+  return;
+}
+
+void
 backup_user_dir() {
   int N;
   std::string dirname, file_list;
@@ -328,8 +326,6 @@ backup_user_dir() {
   read_msg(client_fd, 1);
 
   file_list = read_file_list(dirname, N);
-  std::cout << "CS: " << dirname << " " << N << " ";
-  std::cout << file_list;
   if(find_user_dir(dirname, active_user, bs_ip, bs_port)) {
     //ASK BS FOR FILES
     std::cout << bs_ip << " " << bs_port << std::endl;
@@ -338,7 +334,9 @@ backup_user_dir() {
     std::cout << bs_ip << " " << bs_port << std::endl;
   } else {
     get_bs_for_user(bs_ip, bs_port);
-    std::cout << bs_ip << " " << bs_port << std::endl;
+    send_bs_user_details(find_string(active_user, "cs_user_list.txt"), bs_ip, bs_port);
+    add_user_dir(active_user, bs_ip, bs_port, dirname, file_list);
+    send_client_bs_and_file_list(bs_ip, bs_port, N, file_list);
   }
   return;
 }
