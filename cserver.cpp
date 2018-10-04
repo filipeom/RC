@@ -127,6 +127,13 @@ register_backup_server(int fd, struct sockaddr_in addr,
 }
 
 void
+unregister_backup_server(int fd, struct sockaddr_in addr, 
+    socklen_t addrlen, std::string str) {
+  //TODO: ALL
+  return;
+}
+
+void
 auth_user() {
   std::string user, pass;
   std::string response;
@@ -142,12 +149,57 @@ auth_user() {
   return;
 }
 
+
+void
+delete_user() {
+  //WE NEED TO READ TRAILING " " FROM USER PROTOCOL MSG
+  //TODO: ALL
+  return;
+}
+
+void
+backup_user_dir() {
+  //WE NEED TO READ TRAILING " " FROM USER PROTOCOL MSG
+  //TODO: ALL
+  return;
+}
+
+void
+restore_user_dir() {
+  //WE NEED TO READ TRAILING " " FROM USER PROTOCOL MSG
+  //TODO: ALL
+  return;
+}
+
+void
+dir_list() {
+  //WE NEED TO READ TRAILING " " FROM USER PROTOCOL MSG
+  //TODO: ALL
+  return;
+}
+
+void
+file_list() {
+  //WE NEED TO READ TRAILING " " FROM USER PROTOCOL MSG
+  //TODO: ALL
+  return;
+}
+
+void
+delete_dir() {
+  //WE NEED TO READ TRAILING " " FROM USER PROTOCOL MSG
+  //TODO: ALL
+  return;
+}
+
 int
 main(int argc, char **argv) {
   int pid, clientpid;
   std::string protocol;
 
   parse_input(argc, argv);
+  
+  //TODO: HANDL SIG_CHLD? WHEN CHILD PROCESSESS DIE
 
   if((pid = fork()) == -1) {
     perror("fork");
@@ -169,6 +221,21 @@ main(int argc, char **argv) {
         protocol = read_msg(client_fd, 3);
         if(protocol.compare("AUT") == 0) {
           auth_user();
+          
+          protocol.clear(); protocol = read_msg(client_fd, 3);
+          if(protocol.compare("DLU") == 0) {
+            delete_user();
+          } else if(protocol.compare("BCK") == 0) {
+            backup_user_dir();
+          } else if(protocol.compare("RST") == 0) {
+            restore_user_dir();
+          } else if(protocol.compare("LSD") == 0) {
+            dir_list();
+          } else if(protocol.compare("LSF") == 0) {
+            file_list();
+          } else if(protocol.compare("DEL") == 0) {
+            delete_dir();
+          }
         }
         
         close(client_fd);
@@ -190,6 +257,9 @@ main(int argc, char **argv) {
 
       if(strncmp(buffer, "REG", 3) == 0) {
         register_backup_server(cs_udp_fd, bs_udp_client_addr,
+            bs_client_addr_len, buffer);
+      }else if(strncmp(buffer, "UNR", 3) == 0) {        
+        unregister_backup_server(cs_udp_fd, bs_udp_client_addr,
             bs_client_addr_len, buffer);
       }
     }

@@ -111,11 +111,42 @@ register_backup_server(int fd, struct sockaddr_in addr, int addrlen) {
   return;
 }
 
+void
+unregister_backup_server(int, struct sockaddr_in addr, int addrlen) {
+  //TODO:
+  return;
+}
+
+void
+auth_user() {
+  //WE NEED TO READ TRAILING " " FROM USER PROTOCOL MSG
+  //MAKE COMPATIBLE WITH LSU AND AUT COMMANDS IF POSSIBLE!
+  //TODO: ALL
+  return;
+}
+
+void
+receive_user_files() {
+  //WE NEED TO READ TRAILING " " FROM USER PROTOCOL MSG
+  //TODO: ALL
+  return;  
+}
+
+void
+send_user_files() {
+  //WE NEED TO READ TRAILING " " FROM USER PROTOCOL MSG
+  //TODO: ALL
+  return;
+}
+
 int
 main(int argc, char **argv) {
   int pid, clientpid;
-  
+  std::string protocol;
+
   parse_input(argc, argv);
+
+  //TODO: HANDL SIG_CHLD? WHEN CHILD PROCESSESS DIE
 
   if((pid = fork()) == -1) {
     perror("fork");
@@ -133,6 +164,19 @@ main(int argc, char **argv) {
         exit(EXIT_FAILURE);
       } else if(clientpid == 0) {
         close(bs_tcp_fd);
+        
+        protocol = read_msg(client_fd, 3);
+        if(protocol.compare("AUT") == 0) {
+          auth_user();
+
+          protocol.clear(); protocol = read_msg(client_fd, 3);
+          if(protocol.compare("UPL") == 0) {
+            receive_user_files();
+          } else if(protocol.compare("RSB") == 0) {
+            send_user_files();
+          }
+        }
+
         close(client_fd);
         exit(EXIT_SUCCESS);
       }
@@ -153,7 +197,14 @@ main(int argc, char **argv) {
       recvfrom(bs_udp_fd, buffer, sizeof(buffer), 0,
           (struct sockaddr*)&cs_udp_client_addr,
           &cs_client_addr_len);
-      std::cout << buffer << std::endl;
+      
+      if(strncmp(buffer, "LSF", 3) == 0) {
+          
+      } else if(strncmp(buffer, "LSU", 3) == 0) {
+        auth_user(); 
+      } else if(strncmp(buffer, "DLB", 3) == 0) {
+      
+      }
     }
     close(bs_udp_fd);
     exit(EXIT_FAILURE);

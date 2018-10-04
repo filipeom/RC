@@ -92,6 +92,36 @@ login() {
 }
 
 void
+deluser() {
+  return;
+}
+
+void
+backup() {
+  return;
+}
+
+void
+restore() {
+  return;
+}
+
+void
+dirlist() {
+  return;
+}
+
+void
+filelist() {
+  return;
+}
+
+void
+delete_user() {
+  return;
+}
+
+void
 logout() {
   logged = false;
   auth_str.clear();
@@ -108,11 +138,17 @@ main(int argc, char **argv) {
     if(input.compare("login") == 0) {
       login();
     } else if(input.compare("deluser") == 0) {
+      deluser();
     } else if(input.compare("backup") == 0) {
+      backup();
     } else if(input.compare("restore") == 0) {
+      restore();
     } else if(input.compare("dirlist") == 0) {
+      dirlist();
     } else if(input.compare("filelist") == 0) {
+      filelist();
     } else if(input.compare("delete") == 0) {
+      delete_user();
     } else if(input.compare("logout") == 0) {
       logout();
     } else if(input.compare("exit") == 0) {
