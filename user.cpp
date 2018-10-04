@@ -13,6 +13,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include "tcp.h"
+#include "common.h"
 #define PORT 58043
 
 int CSport = 0;
@@ -87,6 +88,8 @@ login() {
       }
     }
     close(cs_tcp_fd);
+  } else {
+    std::cout << "[!] User: \"" + auth_str.substr(4, 5) + "\" is logged in.\n";
   }
   return;
 }
@@ -98,6 +101,34 @@ deluser() {
 
 void
 backup() {
+  std::string auth_reply, dirname, file_list;
+  std::cin >> dirname;
+
+  if(logged) {
+    connect_to_central_server(cs_tcp_fd, cs_tcp_addr, cs_host,
+        CSname, CSport);
+    
+    write_msg(cs_tcp_fd, auth_str);
+    auth_reply = read_msg(cs_tcp_fd, 3);
+
+    if(auth_reply.compare("AUR") == 0) {
+      read_msg(cs_tcp_fd, 1); auth_reply.clear();
+     
+      auth_reply = read_msg(cs_tcp_fd, 3);
+      if(auth_reply.compare("OK\n") == 0) {
+        /* THIS STRING ENDS WITH " \n"(space and newline chars) */
+        file_list = get_files(dirname);
+        write_msg(cs_tcp_fd, file_list);
+      } else {
+        read_msg(cs_tcp_fd, 1);
+        std::cout << "[!] Something wrong: AUT NOK\n";
+      }
+
+    }
+    close(cs_tcp_fd);
+  } else {
+    std::cout << "[!] No available session to backup from.\n";
+  }
   return;
 }
 

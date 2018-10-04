@@ -18,6 +18,7 @@
 #define PORT 58043
 
 int CSport = 0;
+std::string active_user;
 
 /* CS TCP SERVER */
 int cs_tcp_fd;
@@ -77,6 +78,7 @@ find_user_and_check_pass(std::string user, std::string pass) {
     if(user.compare(username) == 0) {
       if(pass.compare(password) == 0) { 
         std::cout << "User: " << user << std::endl;
+        active_user.clear(); active_user = user;
         rply = "AUR OK\n";
       } else {
         rply = "AUR NOK\n";
@@ -89,6 +91,7 @@ find_user_and_check_pass(std::string user, std::string pass) {
   ofile << user << " " << pass << std::endl;
   ofile.close();
   std::cout << "New user: " << user << std::endl;
+  active_user.clear(); active_user = user;
   rply = "AUR NEW\n";
   return rply;
 }
@@ -100,10 +103,6 @@ check_if_bs_exists(std::string file, std::string ip,
   std::ifstream ifile;
 
   ifile.open(file, std::ios::in);
-  if(!ifile.is_open()){
-    std::cout << "Could not open " + file << std::endl;
-    exit(EXIT_FAILURE);
-  }
 
   while(std::getline(ifile, line)) {
     std::string bs_ip, bs_port;
@@ -111,7 +110,7 @@ check_if_bs_exists(std::string file, std::string ip,
 
     space = line.find(" ");
     bs_ip = line.substr(0, space);
-    bs_port = line.substr(space + 1, (line.size() - 1) - (space + 1));
+    bs_port = line.substr(space + 1, line.size() - (space + 1));
 
     if((ip.compare(bs_ip) == 0) && (port.compare(bs_port) == 0)) {
       ifile.close();
@@ -139,6 +138,7 @@ register_backup_server(int fd, struct sockaddr_in addr,
     reply = "RGR NOK\n";
   } else {
     write_to_file_append("bs_list.txt", ip + " " + port);
+    std::cout << "+BS: " + ip + " " + port << std::endl;
     reply = "RGR OK\n";
   }
 
@@ -185,13 +185,8 @@ unregister_backup_server(int fd, struct sockaddr_in addr,
 
   //TODO UAR NOK/ERR
   return; 
-
-
-
   //should never happen
   reply = "UAR NOK\n";
-  //send to bs status
-  //TODO: ALL
   return;
 }
 
@@ -219,10 +214,132 @@ delete_user() {
   return;
 }
 
+std::string
+read_string(int fd) {
+  std::string c, str;
+
+  c = read_msg(fd, 1);
+  while(c.compare(" ")) {
+    str.append(c);
+    c = read_msg(fd, 1);
+  }
+  return str;
+}
+
+std::string
+read_file_list(std::string &dir, int &N) {
+  int i;
+  std::string file_list;
+
+  dir = read_string(client_fd);
+  N = stoi(read_string(client_fd));
+
+  for(i = 0; i < N; i++) {
+    std::string line;
+    std::string filename, date, time, size;
+
+    filename = read_string(client_fd);
+    date = read_string(client_fd);
+    time = read_string(client_fd);
+    size = read_string(client_fd);
+
+    line = filename+" "+date+" "+time+" "+size+" ";
+    file_list.append(line);
+  }
+  //READ TRAILING \n
+  read_msg(client_fd, 1);
+  file_list.append("\n");
+  return file_list;
+}
+
+bool
+find_user_dir(std::string dir, std::string user, std::string &ip,
+    std::string &port) {
+  std::string line;
+  std::ifstream file;
+
+  file.open("backup_list.txt");
+  while(std::getline(file, line)) {
+    std::size_t found = line.find(user);
+    if(found != std::string::npos) {
+      found = line.find(dir);
+      if(found != std::string::npos) {
+        int space1, space2, space3;
+
+        space1 = line.find(" ");
+        space2 = line.find(" ", space1 + 1);
+        space3 = line.find(" ", space2 + 1);
+
+        ip = line.substr(space1 + 1, (space2 - space1)-1);
+        port = line.substr(space2 + 1, (space3 - space2)-1);
+        file.close();
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+bool
+find_user_bs(std::string user, std::string &ip, std::string &port) {
+  std::string line;
+  std::ifstream file;
+
+  file.open("backup_list.txt");
+  while(std::getline(file, line)) {
+    std::size_t found = line.find(user);
+    if(found != std::string::npos) {
+      int space1, space2, space3;
+
+      space1 = line.find(" ");
+      space2 = line.find(" ", space1 + 1);
+      space3 = line.find(" ", space2 + 1);
+
+      ip = line.substr(space1 + 1, (space2 - space1)-1);
+      port = line.substr(space2 + 1, (space3 - space2)-1);
+      file.close();
+      return true;
+    }
+  }
+  return false;
+}
+
+void
+get_bs_for_user(std::string &ip, std::string &port) {
+  int space;
+  std::string line;
+  std::ifstream file;
+
+  file.open("bs_list.txt");
+  std::getline(file, line);
+  
+  space = line.find(" ");
+  ip = line.substr(0, space);
+  port = line.substr(space+1, line.size() - (space+1));
+  return;
+}
+
 void
 backup_user_dir() {
+  int N;
+  std::string dirname, file_list;
+  std::string bs_ip, bs_port;
   //WE NEED TO READ TRAILING " " FROM USER PROTOCOL MSG
-  //TODO: ALL
+  read_msg(client_fd, 1);
+
+  file_list = read_file_list(dirname, N);
+  std::cout << "CS: " << dirname << " " << N << " ";
+  std::cout << file_list;
+  if(find_user_dir(dirname, active_user, bs_ip, bs_port)) {
+    //ASK BS FOR FILES
+    std::cout << bs_ip << " " << bs_port << std::endl;
+  } else if(find_user_bs(active_user, bs_ip, bs_port)) {
+    //IF USER IS REGISTERED IN A BS SEND FILES THERE
+    std::cout << bs_ip << " " << bs_port << std::endl;
+  } else {
+    get_bs_for_user(bs_ip, bs_port);
+    std::cout << bs_ip << " " << bs_port << std::endl;
+  }
   return;
 }
 
@@ -259,9 +376,10 @@ main(int argc, char **argv) {
   int pid, clientpid;
   std::string protocol;
 
-  parse_input(argc, argv);
+  signal(SIGCHLD, SIG_IGN);
+  signal(SIGPIPE, SIG_IGN);
 
-  //TODO: HANDL SIG_CHLD? WHEN CHILD PROCESSESS DIE
+  parse_input(argc, argv);
 
   if((pid = fork()) == -1) {
     perror("fork");

@@ -107,14 +107,35 @@ register_backup_server(int fd, struct sockaddr_in addr, int addrlen) {
   recvfrom(fd, buffer, sizeof(buffer), 0,
       (struct sockaddr*)&addr,
       (socklen_t*)&addrlen);
+  
   std::cout << buffer;
   return;
 }
 
 void
-unregister_backup_server(int, struct sockaddr_in addr, int addrlen) {
-  //TODO:
+unregister_backup_server(int fd, struct sockaddr_in addr, int addrlen) {
+  std::string unreg;
+  char buffer[128] = {0};
+
+  unreg = "UNR " + get_bs_ip() + " " + std::to_string(BSport) + "\n";
+  sendto(fd, unreg.c_str(), unreg.size(), 0,
+      (struct sockaddr*)&addr,
+      addrlen);
+
+  recvfrom(fd, buffer, sizeof(buffer), 0,
+      (struct sockaddr*)&addr,
+      (socklen_t*)&addrlen);
+  
+  std::cout << buffer;
   return;
+}
+
+void
+exit_backup_server(int signum) {
+  get_central_server_udp(cs_udp_fd, cs_udp_addr, cs_host, cs_addrlen, CSname, CSport); 
+  unregister_backup_server(cs_udp_fd, cs_udp_addr, cs_addrlen);
+  close(cs_udp_fd);
+  exit(EXIT_SUCCESS);
 }
 
 void
@@ -144,9 +165,11 @@ main(int argc, char **argv) {
   int pid, clientpid;
   std::string protocol;
 
-  parse_input(argc, argv);
+  signal(SIGINT, exit_backup_server);
+  signal(SIGCHLD, SIG_IGN);
+  signal(SIGPIPE, SIG_IGN);
 
-  //TODO: HANDL SIG_CHLD? WHEN CHILD PROCESSESS DIE
+  parse_input(argc, argv);
 
   if((pid = fork()) == -1) {
     perror("fork");
