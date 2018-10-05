@@ -343,8 +343,39 @@ restore_user_dir() {
 
 void
 dir_list() {
+  //active_user;
+  std::ifstream file;
+  std::string directories, line, reply;
+  int N = 0;
+  
   //WE NEED TO READ TRAILING " " FROM USER PROTOCOL MSG
-  //TODO: ALL
+  read_msg(client_fd,1);
+  file.open("backup_list.txt");
+  /*if(!ifile.is_open()) {
+    fprintf(stderr, "Could not open backup_list.txt\n");
+    exit(EXIT_FAILURE);
+  }*/
+  while(std::getline(file, line)) {
+    std::string username;
+    username = line.substr(0,5);
+    if(username.compare(active_user) == 0) {
+      int space1, space2, length;
+      std::string directory_name;
+      
+      space1 = line.find(" ");
+      space1 = line.find(" ", space1 + 1);
+      space1 = line.find(" ", space1 + 1);
+      space2 = line.find(" ", space1 + 1);
+      length = (space2 - 1) - space1;
+
+      directory_name = line.substr(space1 + 1, length);
+      directories.append(" " + directory_name);
+      N += 1;
+    }
+  }
+  reply = "LDR " + std::to_string(N) + directories + "\n";
+  write_msg(client_fd, reply);
+  //TODO-if unsuccessful return N=0
   return;
 }
 

@@ -189,7 +189,54 @@ restore() {
 
 void
 dirlist() {
-  return;
+  std::string dirlist, protocol, auth_reply;
+  std::string dirname;
+  int N, cont;
+
+  connect_to_central_server(cs_tcp_fd, cs_tcp_addr, cs_host,
+      CSname, CSport);
+
+  write_msg(cs_tcp_fd, auth_str);
+  auth_reply = read_msg(cs_tcp_fd, 3);
+
+  if(auth_reply.compare("AUR") == 0) {
+    read_msg(cs_tcp_fd, 1);
+    auth_reply.clear(); auth_reply = read_msg(cs_tcp_fd, 3);
+
+    if(auth_reply.compare("NOK") == 0) {
+      read_msg(cs_tcp_fd, 1);
+      std::cout << "[!] Auth was unsuccessful.\n";
+      close(cs_tcp_fd);
+      return;
+    } else if(auth_reply.compare("OK\n") == 0){
+
+      protocol = "LSD\n";
+      write_msg(cs_tcp_fd, protocol);
+      protocol.clear(); protocol = read_msg(cs_tcp_fd, 3);
+      read_msg(cs_tcp_fd, 1);
+
+      N = stoi(read_string(cs_tcp_fd));
+
+      if(N == 0){
+        std::cout << "No files\n";
+        close(cs_tcp_fd);
+        return;
+      }
+      cont = N; 
+      while(cont != 0) {
+        dirname = read_string(cs_tcp_fd);
+        dirlist.append(dirname + " ");
+        cont -= 1;
+      }
+      std::cout << dirlist+"\n";
+
+      close(cs_tcp_fd);
+      return;
+    }
+  }
+  /* Should never reach */
+  close(cs_tcp_fd);
+  exit(EXIT_FAILURE);
 }
 
 void
