@@ -118,7 +118,7 @@ process_cs_backup_reply(std::string &ip, std::string &port, int &N) {
   for(i = 0; i < N; i++) {
     std::string line;
     std::string filename, date, time, size;
-    
+
     filename = read_string(cs_tcp_fd);
     date = read_string(cs_tcp_fd);
     time = read_string(cs_tcp_fd);
@@ -136,7 +136,7 @@ process_cs_backup_reply(std::string &ip, std::string &port, int &N) {
 void
 backup() {
   int N=0;
-  std::string auth_reply, bck_reply; 
+  std::string auth_reply, bck_reply;
   std::string dirname, file_list;
   std::string bs_ip, bs_port, files_resp;
   std::cin >> dirname;
@@ -144,32 +144,32 @@ backup() {
   if(logged) {
     connect_to_central_server(cs_tcp_fd, cs_tcp_addr, cs_host,
         CSname, CSport);
-    
+
     write_msg(cs_tcp_fd, auth_str);
     auth_reply = read_msg(cs_tcp_fd, 3);
 
     if(auth_reply.compare("AUR") == 0) {
       read_msg(cs_tcp_fd, 1); auth_reply.clear();
-     
+
       auth_reply = read_msg(cs_tcp_fd, 3);
       if(auth_reply.compare("OK\n") == 0) {
         /* THIS STRING ENDS WITH " \n"(space and newline chars) */
         file_list = get_files(dirname);
         write_msg(cs_tcp_fd, file_list);
-  
+
         bck_reply = read_msg(cs_tcp_fd, 3);
         if(bck_reply.compare("BKR") == 0) {
           files_resp = process_cs_backup_reply(bs_ip, bs_port, N);
           close(cs_tcp_fd);
           std::cout << bs_ip<<" "<<bs_port<<" "<<N<<" "<<files_resp;
           //TODO:
-          connect_to_backup_server(bs_tcp_fd, bs_ip, 
+          connect_to_backup_server(bs_tcp_fd, bs_ip,
               bs_port, bs_tcp_addr);
           write_msg(bs_tcp_fd, auth_str);
           std::cout << read_msg(bs_tcp_fd, 7);
           close(bs_tcp_fd);
         }
-        
+
       } else {
         read_msg(cs_tcp_fd, 1);
         std::cout << "[!] Something wrong: AUT NOK\n";
@@ -194,6 +194,43 @@ dirlist() {
 
 void
 filelist() {
+  int N = 0;
+  std::string auth_reply, cs_reply;
+  std::string dirname;
+  std::string bs_ip, bs_port, files_resp;
+  std::cin >> dirname;
+  std::string msg;
+
+  if(logged) {
+    connect_to_central_server(cs_tcp_fd, cs_tcp_addr, cs_host,
+        CSname, CSport);
+
+    write_msg(cs_tcp_fd, auth_str);
+    auth_reply = read_msg(cs_tcp_fd, 3);
+
+    if(auth_reply.compare("AUR") == 0) {
+      read_msg(cs_tcp_fd, 1); auth_reply.clear();
+
+      auth_reply = read_msg(cs_tcp_fd, 3);
+      if(auth_reply.compare("OK\n") == 0) {
+        /* THIS STRING ENDS WITH " \n"(space and newline chars) */
+        msg = "LSF " + dirname + "\n";
+        write_msg(cs_tcp_fd, msg);
+        //PAULO AQUI
+        cs_reply = read_msg(cs_tcp_fd, 3);
+        if(cs_reply.compare("LFD") == 0) {
+          files_resp = process_cs_backup_reply(bs_ip, bs_port, N);
+          close(cs_tcp_fd);
+          std::cout << bs_ip<<" "<<bs_port<<" "<<N<<" "<<files_resp;
+        }
+      } else {
+        read_msg(cs_tcp_fd, 1);
+        std::cout << "[!] Something wrong: AUT NOK\n";
+      }
+    }
+  } else {
+    std::cout << "[!] No available session.\n";
+  }
   return;
 }
 
