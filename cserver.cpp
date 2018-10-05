@@ -171,6 +171,7 @@ auth_user() {
   read_msg(client_fd, 1);
 
   response = find_user_and_check_pass("cs_user_list.txt", user, pass);
+  //@Filipe if respone is new or ok atualiza user, else just clear
   active_user.clear(); active_user = user;
   write_msg(client_fd, response);
   return;
@@ -391,7 +392,7 @@ main(int argc, char **argv) {
         protocol = read_msg(client_fd, 3);
         if(protocol.compare("AUT") == 0) {
           auth_user();
-
+          //@Filipe if(if_user is authenticate) ....
           protocol.clear(); protocol = read_msg(client_fd, 3);
           if(protocol.compare("DLU") == 0) {
             delete_user();
