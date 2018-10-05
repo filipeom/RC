@@ -308,18 +308,37 @@ send_client_bs_and_file_list(std::string ip, std::string port,
   return;
 }
 
+std::string
+ask_bs_for_files(std::string dir, std::string user, std::string ip, 
+    std::string port) {
+  char buffer[1024] = {0};
+  std::string protocol;
+
+  protocol = "LSF " + user + " " + dir +"\n";
+  get_backup_server_udp(cs_udp_fd, ip, port,
+      bs_udp_addr, bs_addrlen);
+  sendto(cs_udp_fd, protocol.c_str(), protocol.size(), 0,
+      (struct sockaddr*)&bs_udp_addr,
+      bs_addrlen);
+  recvfrom(cs_udp_fd, buffer, sizeof(buffer), 0,
+      (struct sockaddr*)&bs_udp_addr,
+      (socklen_t*)&bs_addrlen);
+  return buffer; 
+}
+
 void
 backup_user_dir() {
   int N;
   std::string dirname, file_list;
   std::string bs_ip, bs_port;
-  std::string files_updated;
+  std::string bs_file_lst, updated_files;
   //WE NEED TO READ TRAILING " " FROM USER PROTOCOL MSG
   read_msg(client_fd, 1);
 
   file_list = read_file_list(dirname, N);
   if(find_user_dir(dirname, active_user, bs_ip, bs_port)) {
-    //ASK BS FOR FILES AND PUT IN files_updated
+    bs_file_lst = ask_bs_for_files(dirname, active_user, bs_ip, bs_port);
+    std::cout << bs_file_lst;
     send_client_bs_and_file_list(bs_ip, bs_port, N, file_list);
     return;
   } else if(find_user_bs(active_user, bs_ip, bs_port)) {

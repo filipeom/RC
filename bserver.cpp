@@ -157,6 +157,27 @@ add_user(std::string msg) {
 }
 
 void
+get_user_file_list(std::string msg) {
+  int space;
+  std::ifstream file;
+  std::string user, dir, lsf_reply, line; 
+  
+  space = msg.find(" ", 4);
+  user = msg.substr(4, space - 4);
+  dir = msg.substr(space+1, (msg.size() - (space+1))-1);
+
+  file.open(user+"/"+dir+".txt");
+  std::getline(file, line);
+  lsf_reply = "LFD ";
+  lsf_reply.append(line);
+
+  sendto(bs_udp_fd, lsf_reply.c_str(), lsf_reply.size(), 0,
+      (struct sockaddr*)&cs_udp_client_addr,
+      cs_client_addr_len);
+  return;
+}
+
+void
 auth_user() {
   //WE NEED TO READ TRAILING " " FROM USER PROTOCOL MSG
   std::string user, pass;
@@ -178,15 +199,17 @@ void
 receive_user_files() {
   int N;
   std::string dir, file_list, new_dir;
+  std::string upl_reply;
   //WE NEED TO READ TRAILING " " FROM USER PROTOCOL MSG
   read_msg(client_fd, 1);
   
   dir = read_string(client_fd);
   N = stoi(read_string(client_fd));
- 
+  
   new_dir = active_user+"/"+dir;
   mkdir(new_dir.c_str(), 0700);
 
+  file_list = std::to_string(N) + " ";
   for(int i = 0; i < N; i++) {
     std::string line;
     std::string filename, date, time, size;
@@ -199,14 +222,16 @@ receive_user_files() {
     line = filename+" "+date+" "+time+" "+size+" "; 
     read_file(client_fd, new_dir+"/"+filename, stoi(size));
 
-    std::cout << "Received: " << filename << ".\n";
+    std::cout << "Received: " << filename << std::endl; 
     file_list.append(line);
   }
   read_msg(client_fd, 1);
   file_list.append("\n");
   
+  write_to_file_append(active_user+"/"+dir+".txt", file_list);
   std::cout << "Received " << N << " files with success.\n";
-  std::string upl_reply = "UPR OK\n";
+  
+  upl_reply = "UPR OK\n";
   write_msg(client_fd, upl_reply);
   return;  
 }
@@ -280,7 +305,7 @@ main(int argc, char **argv) {
           &cs_client_addr_len);
       
       if(strncmp(buffer, "LSF", 3) == 0) {
-          
+        get_user_file_list(buffer);        
       } else if(strncmp(buffer, "LSU", 3) == 0) {
         add_user(buffer); 
       } else if(strncmp(buffer, "DLB", 3) == 0) {
