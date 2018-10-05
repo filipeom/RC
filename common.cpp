@@ -6,7 +6,7 @@ read_string(int fd) {
   std::string c, str;
 
   c = read_msg(fd, 1);
-  while(c.compare(" ")) {
+  while(c.compare(" ") && c.compare("\n")) {
     str.append(c);
     c = read_msg(fd, 1);
   }

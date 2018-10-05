@@ -83,7 +83,7 @@ check_if_bs_exists(std::string file, std::string ip,
 
     if((ip.compare(bs_ip) == 0) && (port.compare(bs_port) == 0)) {
       ifile.close();
-      return true; 
+      return true;
     }
   }
   ifile.close();
@@ -91,7 +91,7 @@ check_if_bs_exists(std::string file, std::string ip,
 }
 
 void
-register_backup_server(int fd, struct sockaddr_in addr, 
+register_backup_server(int fd, struct sockaddr_in addr,
     socklen_t addrlen, std::string str) {
   int space1;
   int space2;
@@ -120,7 +120,7 @@ register_backup_server(int fd, struct sockaddr_in addr,
 
 
 void
-unregister_backup_server(int fd, struct sockaddr_in addr, 
+unregister_backup_server(int fd, struct sockaddr_in addr,
     socklen_t addrlen, std::string str) {
   std::string ip, port, reply;
   std::string line, search_string;
@@ -153,7 +153,7 @@ unregister_backup_server(int fd, struct sockaddr_in addr,
       (struct sockaddr*) &addr, addrlen);
 
   //TODO UAR NOK/ERR
-  return; 
+  return;
   //should never happen
   reply = "UAR NOK\n";
   return;
@@ -271,7 +271,7 @@ get_bs_for_user(std::string &ip, std::string &port) {
 
   file.open("bs_list.txt");
   std::getline(file, line);
-  
+
   space = line.find(" ");
   ip = line.substr(0, space);
   port = line.substr(space+1, line.size() - (space+1));
@@ -285,8 +285,8 @@ register_user_in_bs(std::string msg, std::string ip,
   std::string protocol;
 
   protocol = "LSU " + msg+"\n";
-  get_backup_server_udp(cs_udp_fd, ip, port, 
-      bs_udp_addr, bs_addrlen); 
+  get_backup_server_udp(cs_udp_fd, ip, port,
+      bs_udp_addr, bs_addrlen);
   sendto(cs_udp_fd, protocol.c_str(), protocol.size(), 0,
       (struct sockaddr*)&bs_udp_addr,
       bs_addrlen);
@@ -294,7 +294,7 @@ register_user_in_bs(std::string msg, std::string ip,
       (struct sockaddr*)&bs_udp_addr,
       (socklen_t*)&bs_addrlen);
   std::cout << buffer;
-  return; 
+  return;
 }
 
 void
@@ -329,7 +329,7 @@ backup_user_dir() {
     register_user_in_bs(find_string(active_user, "cs_user_list.txt"), bs_ip, bs_port);
   }
   write_to_file_append("backup_list.txt",
-      active_user+" "+bs_ip+ " "+bs_port+" "+dirname+" "+file_list);
+      active_user+" "+bs_ip+ " "+bs_port+" "+dirname+"\n");
   send_client_bs_and_file_list(bs_ip, bs_port, N, file_list);
   return;
 }
@@ -343,8 +343,39 @@ restore_user_dir() {
 
 void
 dir_list() {
+  //active_user;
+  std::ifstream file;
+  std::string directories, line, reply;
+  int N = 0;
+  
   //WE NEED TO READ TRAILING " " FROM USER PROTOCOL MSG
-  //TODO: ALL
+  read_msg(client_fd,1);
+  file.open("backup_list.txt");
+  /*if(!ifile.is_open()) {
+    fprintf(stderr, "Could not open backup_list.txt\n");
+    exit(EXIT_FAILURE);
+  }*/
+  while(std::getline(file, line)) {
+    std::string username;
+    username = line.substr(0,5);
+    if(username.compare(active_user) == 0) {
+      int space1, space2, length;
+      std::string directory_name;
+      
+      space1 = line.find(" ");
+      space1 = line.find(" ", space1 + 1);
+      space1 = line.find(" ", space1 + 1);
+      space2 = line.find(" ", space1 + 1);
+      length = (space2 - 1) - space1;
+
+      directory_name = line.substr(space1 + 1, length);
+      directories.append(" " + directory_name);
+      N += 1;
+    }
+  }
+  reply = "LDR " + std::to_string(N) + directories + "\n";
+  write_msg(client_fd, reply);
+  //TODO-if unsuccessful return N=0
   return;
 }
 
@@ -378,7 +409,7 @@ main(int argc, char **argv) {
     /* CHILD HANDLES INCOMING CLIENTS*/
   } else if (pid == 0) {
     create_central_server_tcp(cs_tcp_fd, cs_tcp_addr, CSport);
-    while(true) {    
+    while(true) {
       client_len = sizeof(client_addr);
       client_fd = accept(cs_tcp_fd, (struct sockaddr*)&client_addr,
           &client_len);
@@ -429,7 +460,7 @@ main(int argc, char **argv) {
       if(strncmp(buffer, "REG", 3) == 0) {
         register_backup_server(cs_udp_fd, bs_udp_client_addr,
             bs_client_addr_len, buffer);
-      }else if(strncmp(buffer, "UNR", 3) == 0) {        
+      }else if(strncmp(buffer, "UNR", 3) == 0) {
         unregister_backup_server(cs_udp_fd, bs_udp_client_addr,
             bs_client_addr_len, buffer);
       }

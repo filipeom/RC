@@ -118,7 +118,7 @@ process_cs_backup_reply(std::string &ip, std::string &port, int &N) {
   for(i = 0; i < N; i++) {
     std::string line;
     std::string filename, date, time, size;
-    
+
     filename = read_string(cs_tcp_fd);
     date = read_string(cs_tcp_fd);
     time = read_string(cs_tcp_fd);
@@ -136,7 +136,7 @@ process_cs_backup_reply(std::string &ip, std::string &port, int &N) {
 void
 backup() {
   int N=0;
-  std::string auth_reply, bck_reply; 
+  std::string auth_reply, bck_reply;
   std::string dirname, file_list;
   std::string bs_ip, bs_port, files_resp;
   std::cin >> dirname;
@@ -148,7 +148,7 @@ backup() {
     auth_reply = read_msg(cs_tcp_fd, 3);
 
     if(auth_reply.compare("AUR") == 0) {
-      read_msg(cs_tcp_fd, 1); auth_reply.clear(); 
+      read_msg(cs_tcp_fd, 1); auth_reply.clear();
       auth_reply = read_msg(cs_tcp_fd, 3);
 
       if(auth_reply.compare("OK\n") == 0) {
@@ -160,11 +160,10 @@ backup() {
 
         if(bck_reply.compare("BKR") == 0) {
           files_resp = process_cs_backup_reply(bs_ip, bs_port, N);
-          close(cs_tcp_fd);
-          
+          close(cs_tcp_fd);    
           std::cout << bs_ip << " " << bs_port << std::endl;
           
-          connect_to_backup_server(bs_tcp_fd, bs_ip, 
+          connect_to_backup_server(bs_tcp_fd, bs_ip,
               bs_port, bs_tcp_addr);
           write_msg(bs_tcp_fd, auth_str);    
           auth_reply.clear(); auth_reply = read_msg(bs_tcp_fd, 3);
@@ -203,11 +202,95 @@ restore() {
 
 void
 dirlist() {
-  return;
+  std::string dirlist, protocol, auth_reply;
+  std::string dirname;
+  int N, cont;
+
+  connect_to_central_server(cs_tcp_fd, cs_tcp_addr, cs_host,
+      CSname, CSport);
+
+  write_msg(cs_tcp_fd, auth_str);
+  auth_reply = read_msg(cs_tcp_fd, 3);
+
+  if(auth_reply.compare("AUR") == 0) {
+    read_msg(cs_tcp_fd, 1);
+    auth_reply.clear(); auth_reply = read_msg(cs_tcp_fd, 3);
+
+    if(auth_reply.compare("NOK") == 0) {
+      read_msg(cs_tcp_fd, 1);
+      std::cout << "[!] Auth was unsuccessful.\n";
+      close(cs_tcp_fd);
+      return;
+    } else if(auth_reply.compare("OK\n") == 0){
+
+      protocol = "LSD\n";
+      write_msg(cs_tcp_fd, protocol);
+      protocol.clear(); protocol = read_msg(cs_tcp_fd, 3);
+      read_msg(cs_tcp_fd, 1);
+
+      N = stoi(read_string(cs_tcp_fd));
+
+      if(N == 0){
+        std::cout << "No files\n";
+        close(cs_tcp_fd);
+        return;
+      }
+      cont = N; 
+      while(cont != 0) {
+        dirname = read_string(cs_tcp_fd);
+        dirlist.append(dirname + " ");
+        cont -= 1;
+      }
+      std::cout << dirlist+"\n";
+
+      close(cs_tcp_fd);
+      return;
+    }
+  }
+  /* Should never reach */
+  close(cs_tcp_fd);
+  exit(EXIT_FAILURE);
 }
 
 void
 filelist() {
+  int N = 0;
+  std::string auth_reply, cs_reply;
+  std::string dirname;
+  std::string bs_ip, bs_port, files_resp;
+  std::cin >> dirname;
+  std::string msg;
+
+  if(logged) {
+    connect_to_central_server(cs_tcp_fd, cs_tcp_addr, cs_host,
+        CSname, CSport);
+
+    write_msg(cs_tcp_fd, auth_str);
+    auth_reply = read_msg(cs_tcp_fd, 3);
+
+    if(auth_reply.compare("AUR") == 0) {
+      read_msg(cs_tcp_fd, 1); auth_reply.clear();
+
+      auth_reply = read_msg(cs_tcp_fd, 3);
+      if(auth_reply.compare("OK\n") == 0) {
+        /* THIS STRING ENDS WITH " \n"(space and newline chars) */
+        msg = "LSF " + dirname + "\n";
+        write_msg(cs_tcp_fd, msg);
+        //PAULO AQUI
+        cs_reply = read_msg(cs_tcp_fd, 3);
+        if(cs_reply.compare("LFD") == 0) {
+          files_resp = process_cs_backup_reply(bs_ip, bs_port, N);
+          close(cs_tcp_fd);
+          std::cout << bs_ip<<" "<<bs_port<<" "<<N<<" "<<files_resp;
+        }
+      } else {
+        read_msg(cs_tcp_fd, 1);
+        std::cout << "[!] Something wrong: AUT NOK\n";
+      }
+    }
+  } else {
+    std::cout << "[!] No available session.\n";
+  }
   return;
 }
 
