@@ -144,37 +144,51 @@ backup() {
   if(logged) {
     connect_to_central_server(cs_tcp_fd, cs_tcp_addr, cs_host,
         CSname, CSport);
-    
     write_msg(cs_tcp_fd, auth_str);
     auth_reply = read_msg(cs_tcp_fd, 3);
 
     if(auth_reply.compare("AUR") == 0) {
-      read_msg(cs_tcp_fd, 1); auth_reply.clear();
-     
+      read_msg(cs_tcp_fd, 1); auth_reply.clear(); 
       auth_reply = read_msg(cs_tcp_fd, 3);
+
       if(auth_reply.compare("OK\n") == 0) {
-        /* THIS STRING ENDS WITH " \n"(space and newline chars) */
+        /* This string ends with: " \n" */
         file_list = get_files(dirname);
+        /* Send BCK msg*/
         write_msg(cs_tcp_fd, file_list);
-  
         bck_reply = read_msg(cs_tcp_fd, 3);
+
         if(bck_reply.compare("BKR") == 0) {
           files_resp = process_cs_backup_reply(bs_ip, bs_port, N);
           close(cs_tcp_fd);
-          std::cout << bs_ip<<" "<<bs_port<<" "<<N<<" "<<files_resp;
-          //TODO:
+          
+          std::cout << bs_ip << " " << bs_port << std::endl;
+          
           connect_to_backup_server(bs_tcp_fd, bs_ip, 
               bs_port, bs_tcp_addr);
-          write_msg(bs_tcp_fd, auth_str);
-          std::cout << read_msg(bs_tcp_fd, 7);
+          write_msg(bs_tcp_fd, auth_str);    
+          auth_reply.clear(); auth_reply = read_msg(bs_tcp_fd, 3);
+          
+          if(auth_reply.compare("AUR") == 0) {
+            read_msg(bs_tcp_fd, 1); 
+            auth_reply.clear(); auth_reply = read_msg(bs_tcp_fd, 3);
+            
+            if(auth_reply.compare("OK\n") == 0) {
+              std::cout << "Sending Files...\n";
+            
+            } else {
+              read_msg(bs_tcp_fd, 1);
+              std::cout << "[!] BS auth was unsuccessful.\n";
+              close(bs_tcp_fd);
+            }
+          }
           close(bs_tcp_fd);
         }
-        
       } else {
         read_msg(cs_tcp_fd, 1);
         std::cout << "[!] Something wrong: AUT NOK\n";
+        close(cs_tcp_fd);
       }
-
     }
   } else {
     std::cout << "[!] No available session to backup from.\n";

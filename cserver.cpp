@@ -279,7 +279,7 @@ get_bs_for_user(std::string &ip, std::string &port) {
 }
 
 void
-send_bs_user_details(std::string msg, std::string ip, 
+register_user_in_bs(std::string msg, std::string ip, 
     std::string port) {
   char buffer[128] = {0};
   std::string protocol;
@@ -326,7 +326,7 @@ backup_user_dir() {
     //IF USER IS REGISTERED IN A BS SEND FILES THERE
   } else {
     get_bs_for_user(bs_ip, bs_port);
-    send_bs_user_details(find_string(active_user, "cs_user_list.txt"), bs_ip, bs_port);
+    register_user_in_bs(find_string(active_user, "cs_user_list.txt"), bs_ip, bs_port);
   }
   write_to_file_append("backup_list.txt",
       active_user+" "+bs_ip+ " "+bs_port+" "+dirname+" "+file_list);
