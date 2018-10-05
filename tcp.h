@@ -9,12 +9,15 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
 
 std::string read_msg(int, int);
 void write_msg(int, std::string);
+void write_file(int fd, std::string file, int size);
+void read_file(int fd, std::string file, int size);
 
 void create_central_server_tcp(int &fd, struct sockaddr_in &addr, 
     int port);

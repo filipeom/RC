@@ -172,7 +172,33 @@ auth_user() {
 
 void
 receive_user_files() {
+  int N;
+  std::string dir, file_list;
   //WE NEED TO READ TRAILING " " FROM USER PROTOCOL MSG
+  read_msg(client_fd, 1);
+  
+  dir = read_string(client_fd);
+  N = stoi(read_string(client_fd));
+
+  for(int i = 0; i < N; i++) {
+    std::string line;
+    std::string filename, date, time, size;
+
+    filename = read_string(client_fd);
+    date = read_string(client_fd);
+    time = read_string(client_fd);
+    size = read_string(client_fd);
+
+    line = filename+" "+date+" "+time+" "+size+" ";
+    std::cout << "Received: " << filename << ".\n";
+    file_list.append(line);
+  }
+  read_msg(client_fd, 1);
+  file_list.append("\n");
+  
+  std::cout << "Received " << N << " files with success.\n";
+  std::string upl_reply = "UPR OK\n";
+  write_msg(client_fd, upl_reply);
   return;  
 }
 

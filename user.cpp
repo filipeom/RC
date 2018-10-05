@@ -106,7 +106,7 @@ deluser() {
 
 
 std::string
-process_cs_backup_reply(std::string &ip, std::string &port, int &N) {
+process_files_reply(std::string &ip, std::string &port, int &N) {
   int i;
   std::string files;
   read_msg(cs_tcp_fd, 1);
@@ -134,11 +134,58 @@ process_cs_backup_reply(std::string &ip, std::string &port, int &N) {
 }
 
 void
+receive_updated_file_list_and_send_files(std::string dir) {
+  int N;
+  std::string auth_reply, upl;
+  std::string ip, port;
+  
+  ip = read_string(cs_tcp_fd);
+  port = read_string(cs_tcp_fd);
+  
+  std::cout << "Backup to: " + ip + " " + port <<std::endl;
+
+  connect_to_backup_server(bs_tcp_fd, ip, port, bs_tcp_addr);
+  write_msg(bs_tcp_fd, auth_str);
+  
+  auth_reply = read_msg(bs_tcp_fd, 3);
+  if(auth_reply.compare("AUR") == 0) {
+    read_msg(bs_tcp_fd, 1);
+    auth_reply.clear(); auth_reply = read_msg(bs_tcp_fd, 3);
+
+    if(auth_reply.compare("OK\n") == 0) {
+      N = stoi(read_string(cs_tcp_fd));
+      upl = "UPL " + dir + " " + std::to_string(N) + " ";
+      write_msg(bs_tcp_fd, upl);
+
+      for(int i = 0; i < N; i++) {
+        std::string line;
+        std::string filename, date, time, size;
+
+        filename = read_string(cs_tcp_fd);
+        date = read_string(cs_tcp_fd);
+        time = read_string(cs_tcp_fd);
+        size = read_string(cs_tcp_fd);
+
+        line = filename+" "+date+" "+time+" "+size+" ";
+        std::cout << "Uploading: " << filename << "...\n";
+        write_msg(bs_tcp_fd, line);
+      }
+      read_msg(cs_tcp_fd, 1);
+      close(cs_tcp_fd);
+      write_msg(bs_tcp_fd, "\n");
+    } else {
+      read_msg(bs_tcp_fd, 1);
+      std::cout << "[!] BS auth was unsuccessful.\n" << std::endl;
+      close(bs_tcp_fd);
+    }
+  }
+  return;  
+}
+
+void
 backup() {
-  int N=0;
-  std::string auth_reply, bck_reply;
+  std::string auth_reply, bck_reply, upl_reply;
   std::string dirname, file_list;
-  std::string bs_ip, bs_port, files_resp;
   std::cin >> dirname;
 
   if(logged) {
@@ -159,29 +206,23 @@ backup() {
         bck_reply = read_msg(cs_tcp_fd, 3);
 
         if(bck_reply.compare("BKR") == 0) {
-          files_resp = process_cs_backup_reply(bs_ip, bs_port, N);
-          close(cs_tcp_fd);    
-          std::cout << bs_ip << " " << bs_port << std::endl;
+          read_msg(cs_tcp_fd, 1);    
+          receive_updated_file_list_and_send_files(dirname);
+          upl_reply = read_msg(bs_tcp_fd, 3);
           
-          connect_to_backup_server(bs_tcp_fd, bs_ip,
-              bs_port, bs_tcp_addr);
-          write_msg(bs_tcp_fd, auth_str);    
-          auth_reply.clear(); auth_reply = read_msg(bs_tcp_fd, 3);
-          
-          if(auth_reply.compare("AUR") == 0) {
-            read_msg(bs_tcp_fd, 1); 
-            auth_reply.clear(); auth_reply = read_msg(bs_tcp_fd, 3);
+          if(upl_reply.compare("UPR") == 0) {
+            read_msg(bs_tcp_fd, 1);
+            upl_reply.clear(); upl_reply = read_msg(bs_tcp_fd, 3);
             
-            if(auth_reply.compare("OK\n") == 0) {
-              std::cout << "Sending Files...\n";
-            
+            if(upl_reply.compare("OK\n") == 0) {
+              std::cout << "Files Uploaded Succesfully." << std::endl;
+              close(bs_tcp_fd);
             } else {
               read_msg(bs_tcp_fd, 1);
-              std::cout << "[!] BS auth was unsuccessful.\n";
               close(bs_tcp_fd);
+              std::cout << "Backup Failed!" << std::endl;
             }
           }
-          close(bs_tcp_fd);
         }
       } else {
         read_msg(cs_tcp_fd, 1);
@@ -279,7 +320,7 @@ filelist() {
         //PAULO AQUI
         cs_reply = read_msg(cs_tcp_fd, 3);
         if(cs_reply.compare("LFD") == 0) {
-          files_resp = process_cs_backup_reply(bs_ip, bs_port, N);
+          files_resp = process_files_reply(bs_ip, bs_port, N);
           close(cs_tcp_fd);
           std::cout << bs_ip<<" "<<bs_port<<" "<<N<<" "<<files_resp;
         }
