@@ -169,6 +169,7 @@ receive_updated_file_list_and_send_files(std::string dir) {
         line = filename+" "+date+" "+time+" "+size+" ";
         std::cout << "Uploading: " << filename << "...\n";
         write_msg(bs_tcp_fd, line);
+        write_file(bs_tcp_fd, dir+"/"+filename, stoi(size));
       }
       read_msg(cs_tcp_fd, 1);
       close(cs_tcp_fd);

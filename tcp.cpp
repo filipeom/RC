@@ -46,7 +46,7 @@ void
 write_file(int fd, std::string file, int size) {
   int filefd;
   int nleft, nread = 0, nwritten = 0;
-  char buffer[size];
+  char buffer[size+1];
   char *ptr;
 
   if((filefd = open(file.c_str(), O_RDONLY)) == -1) {
@@ -72,7 +72,7 @@ write_file(int fd, std::string file, int size) {
   nleft = size;
   while(nleft > 0) {
      if((nwritten = write(fd, ptr, nleft)) <= 0) {
-      fprintf(stderr, "write: write_msg(int, std::string)\n");
+      fprintf(stderr, "write: write_file\n");
       exit(EXIT_FAILURE);
     }
     nleft -= nwritten;
@@ -85,7 +85,7 @@ void
 read_file(int fd, std::string file, int size) {
   int filefd;
   int nleft, nread = 0, nwritten = 0;
-  char buffer[size];
+  char buffer[size+1];
   char *ptr;
 
   ptr = buffer;
@@ -101,7 +101,8 @@ read_file(int fd, std::string file, int size) {
     ptr += nread;
   }
   
-  if((filefd = open(file.c_str(), O_CREAT, O_WRONLY)) == -1) {
+  if((filefd = open(file.c_str(), O_WRONLY | O_CREAT | O_TRUNC,
+                S_IRUSR | S_IWUSR)) == -1) {
     perror("open");
     exit(EXIT_FAILURE);
   }
@@ -110,7 +111,7 @@ read_file(int fd, std::string file, int size) {
   nleft = size;
   while(nleft > 0) {
      if((nwritten = write(filefd, ptr, nleft)) <= 0) {
-      fprintf(stderr, "write: write_msg(int, std::string)\n");
+      fprintf(stderr, "write: write_file\n");
       exit(EXIT_FAILURE);
     }
     nleft -= nwritten;

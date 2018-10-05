@@ -7,7 +7,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <unordered_map>
+#include <sys/stat.h>
 #include <netinet/in.h>
 #include <netdb.h>
 #include <arpa/inet.h>
@@ -19,7 +19,7 @@
 #define PORT_BS 59043
 
 int CSport = 0, BSport = 0;
-std::string CSname;
+std::string CSname, active_user;
 
 /* BS UDP SERVER */
 int bs_udp_fd;
@@ -141,11 +141,14 @@ exit_backup_server(int signum) {
 
 void
 add_user(std::string msg) {
-  std::string auth, auth_reply;
+  std::string auth, auth_reply, user;
 
   auth = msg.substr(4, msg.size()-4);
+  user = msg.substr(4, 5);
+
   write_to_file_append("bs_user_list.txt", auth);
-  
+  mkdir(user.c_str(), 0700);  
+
   auth_reply = "LUR OK\n";
   sendto(bs_udp_fd, auth_reply.c_str(), auth_reply.size(), 0,
       (struct sockaddr*)&cs_udp_client_addr,
@@ -166,6 +169,7 @@ auth_user() {
   read_msg(client_fd, 1);
   
   response = find_user_and_check_pass("bs_user_list.txt", user, pass);
+  active_user = user;
   write_msg(client_fd, response);
   return;
 }
@@ -173,12 +177,15 @@ auth_user() {
 void
 receive_user_files() {
   int N;
-  std::string dir, file_list;
+  std::string dir, file_list, new_dir;
   //WE NEED TO READ TRAILING " " FROM USER PROTOCOL MSG
   read_msg(client_fd, 1);
   
   dir = read_string(client_fd);
   N = stoi(read_string(client_fd));
+ 
+  new_dir = active_user+"/"+dir;
+  mkdir(new_dir.c_str(), 0700);
 
   for(int i = 0; i < N; i++) {
     std::string line;
@@ -188,8 +195,10 @@ receive_user_files() {
     date = read_string(client_fd);
     time = read_string(client_fd);
     size = read_string(client_fd);
+    
+    line = filename+" "+date+" "+time+" "+size+" "; 
+    read_file(client_fd, new_dir+"/"+filename, stoi(size));
 
-    line = filename+" "+date+" "+time+" "+size+" ";
     std::cout << "Received: " << filename << ".\n";
     file_list.append(line);
   }
