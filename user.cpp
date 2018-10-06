@@ -43,7 +43,7 @@ parse_input(int argc, char **argv) {
         CSname = argv[optind];
         break;
       default:
-        fprintf(stderr,"Usage: ./user [-n CSname] [-p CSport]\n");
+        fprintf(stderr,"[ERR] Usage: ./user [-n CSname] [-p CSport]\n");
         exit(EXIT_FAILURE);
     }
   }
@@ -83,18 +83,18 @@ login() {
         logged = true;
         read_msg(cs_tcp_fd, 1);
       } else if(auth_reply.compare("NOK") == 0) {
-        std::cout << "[!] Auth was unsuccessful." << std::endl;
+        std::cout << "[AUR-NOK] Auth was unsuccessful." << std::endl;
         read_msg(cs_tcp_fd, 1);
         auth_reply.clear();
         logged = false;
       } else {
-        std::cout << "OK!" << std::endl;
+        std::cout << "User \"" +user +"\" is now logged-in.\n";
         logged = true;
       }
     }
     close(cs_tcp_fd);
   } else {
-    std::cout << "[!] User: \"" + auth_str.substr(4, 5) + "\" is logged in.\n";
+    std::cout << "[WARNING] User: \"" + auth_str.substr(4, 5) + "\" is logged in.\n";
   }
   return;
 }
@@ -137,47 +137,57 @@ void
 receive_updated_file_list_and_send_files(std::string dir) {
   int N;
   std::string auth_reply, upl;
-  std::string ip, port;
-  
-  ip = read_string(cs_tcp_fd);
-  port = read_string(cs_tcp_fd);
-  
-  std::cout << "Backup to: " + ip + " " + port <<std::endl;
+  std::string ip, port, bck_reply;
 
-  connect_to_backup_server(bs_tcp_fd, ip, port, bs_tcp_addr);
-  write_msg(bs_tcp_fd, auth_str);
-  
-  auth_reply = read_msg(bs_tcp_fd, 3);
-  if(auth_reply.compare("AUR") == 0) {
-    read_msg(bs_tcp_fd, 1);
-    auth_reply.clear(); auth_reply = read_msg(bs_tcp_fd, 3);
+  bck_reply = read_msg(cs_tcp_fd, 4);
+  if(bck_reply.compare("EOF\n") == 0) {
+    std::cout << "[BKR-EOF] No Backup Server available to backup.\n";
+  } else if (bck_reply.compare("ERR\n") == 0) {
+    std::cout << "[BKR-ERR] Backup request is not correctly formulated.\n"; 
+  } else {
+    ip = bck_reply;
+    ip.append(read_string(cs_tcp_fd));
+    port = read_string(cs_tcp_fd);
 
-    if(auth_reply.compare("OK\n") == 0) {
-      N = stoi(read_string(cs_tcp_fd));
-      upl = "UPL " + dir + " " + std::to_string(N) + " ";
-      write_msg(bs_tcp_fd, upl);
+    std::cout << "Backup to: " + ip + " " + port <<std::endl;
 
-      for(int i = 0; i < N; i++) {
-        std::string line;
-        std::string filename, date, time, size;
+    connect_to_backup_server(bs_tcp_fd, ip, port, bs_tcp_addr);
+    write_msg(bs_tcp_fd, auth_str);
 
-        filename = read_string(cs_tcp_fd);
-        date = read_string(cs_tcp_fd);
-        time = read_string(cs_tcp_fd);
-        size = read_string(cs_tcp_fd);
-
-        line = filename+" "+date+" "+time+" "+size+" ";
-        std::cout << "Uploading: " << filename << "...\n";
-        write_msg(bs_tcp_fd, line);
-        write_file(bs_tcp_fd, dir+"/"+filename, stoi(size));
-      }
-      read_msg(cs_tcp_fd, 1);
-      close(cs_tcp_fd);
-      write_msg(bs_tcp_fd, "\n");
-    } else {
+    auth_reply = read_msg(bs_tcp_fd, 3);
+    if(auth_reply.compare("AUR") == 0) {
       read_msg(bs_tcp_fd, 1);
-      std::cout << "[!] BS auth was unsuccessful.\n" << std::endl;
-      close(bs_tcp_fd);
+      auth_reply.clear(); auth_reply = read_msg(bs_tcp_fd, 3);
+
+      if(auth_reply.compare("OK\n") == 0) {
+        N = stoi(read_string(cs_tcp_fd));
+        upl = "UPL " + dir + " " + std::to_string(N) + " ";
+        write_msg(bs_tcp_fd, upl);
+
+        for(int i = 0; i < N; i++) {
+          std::string line;
+          std::string filename, date, time, size;
+
+          filename = read_string(cs_tcp_fd);
+          date = read_string(cs_tcp_fd);
+          time = read_string(cs_tcp_fd);
+          size = read_string(cs_tcp_fd);
+
+          line = filename+" "+date+" "+time+" "+size+" ";
+          std::cout << "Uploading: " << filename << "...\n";
+          write_msg(bs_tcp_fd, line);
+          write_file(bs_tcp_fd, dir+"/"+filename, stoi(size));
+        }
+        read_msg(cs_tcp_fd, 1);
+        close(cs_tcp_fd);
+        write_msg(bs_tcp_fd, "\n");
+      } else {
+        if(auth_reply.compare("NOK") == 0) {
+          read_msg(bs_tcp_fd, 1);
+          std::cout << "[AUR-NOK] BS Auth was unsuccessful.\n" << std::endl;
+          close(bs_tcp_fd);
+        }
+      }
     }
   }
   return;  
@@ -210,29 +220,29 @@ backup() {
           read_msg(cs_tcp_fd, 1);    
           receive_updated_file_list_and_send_files(dirname);
           upl_reply = read_msg(bs_tcp_fd, 3);
-          
+
           if(upl_reply.compare("UPR") == 0) {
             read_msg(bs_tcp_fd, 1);
             upl_reply.clear(); upl_reply = read_msg(bs_tcp_fd, 3);
-            
+
             if(upl_reply.compare("OK\n") == 0) {
               std::cout << "Files Uploaded Succesfully." << std::endl;
               close(bs_tcp_fd);
-            } else {
+            } else if(upl_reply.compare("NOK") == 0) {
               read_msg(bs_tcp_fd, 1);
               close(bs_tcp_fd);
-              std::cout << "Backup Failed!" << std::endl;
+              std::cout << "[UPR-NOK] Backup request was unsuccessful.\n";
             }
           }
         }
-      } else {
+      } else if(auth_reply.compare("NOK") == 0) {
         read_msg(cs_tcp_fd, 1);
-        std::cout << "[!] Something wrong: AUT NOK\n";
+        std::cout << "[AUR-NOK] Auth was unsuccessful.\n";
         close(cs_tcp_fd);
       }
     }
   } else {
-    std::cout << "[!] No available session to backup from.\n";
+    std::cout << "[WARNING] No available session to backup from.\n";
   }
   return;
 }
@@ -248,46 +258,50 @@ dirlist() {
   std::string dirname;
   int N, cont;
 
-  connect_to_central_server(cs_tcp_fd, cs_tcp_addr, cs_host,
-      CSname, CSport);
+  if(logged) {
+    connect_to_central_server(cs_tcp_fd, cs_tcp_addr, cs_host,
+        CSname, CSport);
 
-  write_msg(cs_tcp_fd, auth_str);
-  auth_reply = read_msg(cs_tcp_fd, 3);
+    write_msg(cs_tcp_fd, auth_str);
+    auth_reply = read_msg(cs_tcp_fd, 3);
 
-  if(auth_reply.compare("AUR") == 0) {
-    read_msg(cs_tcp_fd, 1);
-    auth_reply.clear(); auth_reply = read_msg(cs_tcp_fd, 3);
-
-    if(auth_reply.compare("NOK") == 0) {
+    if(auth_reply.compare("AUR") == 0) {
       read_msg(cs_tcp_fd, 1);
-      std::cout << "[!] Auth was unsuccessful.\n";
-      close(cs_tcp_fd);
-      return;
-    } else if(auth_reply.compare("OK\n") == 0){
+      auth_reply.clear(); auth_reply = read_msg(cs_tcp_fd, 3);
 
-      protocol = "LSD\n";
-      write_msg(cs_tcp_fd, protocol);
-      protocol.clear(); protocol = read_msg(cs_tcp_fd, 3);
-      read_msg(cs_tcp_fd, 1);
+      if(auth_reply.compare("NOK") == 0) {
+        read_msg(cs_tcp_fd, 1);
+        std::cout << "[AUR-NOK] Auth was unsuccessful.\n";
+        close(cs_tcp_fd);
+        return;
+      } else if(auth_reply.compare("OK\n") == 0){
 
-      N = stoi(read_string(cs_tcp_fd));
+        protocol = "LSD\n";
+        write_msg(cs_tcp_fd, protocol);
+        protocol.clear(); protocol = read_msg(cs_tcp_fd, 3);
+        read_msg(cs_tcp_fd, 1);
 
-      if(N == 0){
-        std::cout << "No files\n";
+        N = stoi(read_string(cs_tcp_fd));
+
+        if(N == 0){
+          std::cout << "[LSD] Unable to list user directories.\n";
+          close(cs_tcp_fd);
+          return;
+        }
+        cont = N; 
+        while(cont != 0) {
+          dirname = read_string(cs_tcp_fd);
+          dirlist.append(dirname + " ");
+          cont -= 1;
+        }
+        std::cout << dirlist+"\n";
+
         close(cs_tcp_fd);
         return;
       }
-      cont = N; 
-      while(cont != 0) {
-        dirname = read_string(cs_tcp_fd);
-        dirlist.append(dirname + " ");
-        cont -= 1;
-      }
-      std::cout << dirlist+"\n";
-
-      close(cs_tcp_fd);
-      return;
     }
+  } else {
+    std::cout << "[WARNING] No available session.\n";
   }
   /* Should never reach */
   close(cs_tcp_fd);
@@ -325,13 +339,13 @@ filelist() {
           close(cs_tcp_fd);
           std::cout << bs_ip<<" "<<bs_port<<" "<<N<<" "<<files_resp;
         }
-      } else {
+      } else if(auth_reply.compare("NOK") == 0){
         read_msg(cs_tcp_fd, 1);
-        std::cout << "[!] Something wrong: AUT NOK\n";
+        std::cout << "[AUR-NOK] Auth was unsuccessful.\n";
       }
     }
   } else {
-    std::cout << "[!] No available session.\n";
+    std::cout << "[WARNING] No available session.\n";
   }
   return;
 }

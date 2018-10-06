@@ -326,9 +326,27 @@ ask_bs_for_files(std::string dir, std::string user, std::string ip,
   return buffer; 
 }
 
+std::string
+update_file_list(int &N, std::string file_lst1, std::string file_lst2) {
+  /*  Compare files from lst2 against files from lst1
+   *  if files not in lst2 
+   *    then update updated file lst
+   *    N++
+   *  else if files in lst2 but have different date or time 
+   *    then update updated file lst
+   *    N++
+   *  else 
+   *    reapeat until no more files in lst1.
+   *  return updated file lst
+   */
+  std::string updated_file_lst = file_lst1;
+
+  return updated_file_lst;
+}
+
 void
 backup_user_dir() {
-  int N;
+  int N, new_N = 0;
   std::string dirname, file_list;
   std::string bs_ip, bs_port;
   std::string bs_file_lst, updated_files;
@@ -338,8 +356,10 @@ backup_user_dir() {
   file_list = read_file_list(dirname, N);
   if(find_user_dir(dirname, active_user, bs_ip, bs_port)) {
     bs_file_lst = ask_bs_for_files(dirname, active_user, bs_ip, bs_port);
-    std::cout << bs_file_lst;
-    send_client_bs_and_file_list(bs_ip, bs_port, N, file_list);
+    //TODO:
+    updated_files = update_file_list(new_N, file_list, bs_file_lst);
+    //END-TODO;
+    send_client_bs_and_file_list(bs_ip, bs_port, N/*update to new_N*/, updated_files);
     return;
   } else if(find_user_bs(active_user, bs_ip, bs_port)) {
     //IF USER IS REGISTERED IN A BS SEND FILES THERE
