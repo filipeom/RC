@@ -61,6 +61,12 @@ parse_input(int argc, char **argv) {
 }
 
 void
+logout() {
+  logged = false;
+  auth_str.clear();
+}
+
+void
 login() {
   std::string user, pass;
   std::string auth_reply;
@@ -101,6 +107,54 @@ login() {
 
 void
 deluser() {
+  std::string dlu, dlu_reply;
+  std::string user, auth_reply;
+
+  if(logged) {
+    user = auth_str.substr(4, 5);
+    dlu = "DLU\n";
+
+    connect_to_central_server(cs_tcp_fd, cs_tcp_addr, cs_host,
+        CSname, CSport);
+    write_msg(cs_tcp_fd, auth_str);
+    
+    auth_reply = read_msg(cs_tcp_fd, 3);
+    if(auth_reply.compare("AUR") == 0) {
+      read_msg(cs_tcp_fd, 1);
+      auth_reply.clear(); auth_reply = read_msg(cs_tcp_fd, 3);
+
+      if(auth_reply.compare("OK\n") == 0) {
+        write_msg(cs_tcp_fd, dlu);
+        dlu_reply = read_msg(cs_tcp_fd, 3);
+
+        if(dlu_reply.compare("DLR") == 0) {
+          read_msg(cs_tcp_fd, 1);
+          dlu_reply.clear(); dlu_reply = read_msg(cs_tcp_fd, 3);
+          
+          if(dlu_reply.compare("OK\n") == 0) {
+            std::cout << "User: \"" + user + "\" was deleted with success.\n";
+            logout();
+            close(cs_tcp_fd);          
+          } else if(dlu_reply.compare("NOK") == 0) {
+            read_msg(cs_tcp_fd, 1);
+            std::cout << "Unable to delete user: \"" + 
+              user + "\", notably because the user still has information stored.\n";
+            close(cs_tcp_fd);
+          }
+        }
+      } else if(auth_reply.compare("NOK") == 0) {
+        read_msg(cs_tcp_fd, 1);
+        close(cs_tcp_fd);
+        std::cout << "[AUR-NOK] Auth was unsuccessful.\n";
+      }
+    } else {
+      std::cout << "[AUR-ERR] Something went terrible wrong.\n";
+      close(cs_tcp_fd);
+      exit(EXIT_FAILURE);
+    }
+  } else {
+    std::cout << "[WARNING] No user logged-in.\n";
+  }
   return;
 }
 
@@ -351,14 +405,8 @@ filelist() {
 }
 
 void
-delete_user() {
+delete_dir() {
   return;
-}
-
-void
-logout() {
-  logged = false;
-  auth_str.clear();
 }
 
 int
@@ -382,7 +430,7 @@ main(int argc, char **argv) {
     } else if(input.compare("filelist") == 0) {
       filelist();
     } else if(input.compare("delete") == 0) {
-      delete_user();
+      delete_dir();
     } else if(input.compare("logout") == 0) {
       logout();
     } else if(input.compare("exit") == 0) {

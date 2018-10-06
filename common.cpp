@@ -14,6 +14,44 @@ read_string(int fd) {
 }
 
 void
+remove_line_from_file_with_key(std::string key, 
+    std::string filename) {
+  std::string line;
+  std::ifstream ifile;
+  std::ofstream ofile;
+
+  ifile.open(filename);
+  ofile.open("temp.txt");
+
+  while(std::getline(ifile, line)) {
+    std::size_t found = line.find(key);
+    if(found == std::string::npos) {
+      ofile << line << std::endl;
+    }
+  }
+  ofile.close();
+  ifile.close();
+  remove(filename.c_str());
+  rename("temp.txt", filename.c_str());
+  return;
+}
+
+bool
+check_if_string_exists_in_file(std::string key, std::string file) {
+  std::string line;
+  std::ifstream ifile;
+
+  ifile.open(file);
+  while(std::getline(ifile, line)) {
+    std::size_t found = line.find(key);
+    if(found != std::string::npos) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void
 write_to_file_append(std::string file, std::string msg) {
   std::ofstream ofile;
 

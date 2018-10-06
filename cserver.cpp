@@ -171,7 +171,6 @@ auth_user() {
   read_msg(client_fd, 1);
 
   response = find_user_and_check_pass("cs_user_list.txt", user, pass);
-  //@Filipe if respone is new or ok atualiza user, else just clear
   active_user.clear(); active_user = user;
   write_msg(client_fd, response);
   return;
@@ -180,8 +179,17 @@ auth_user() {
 
 void
 delete_user() {
+  std::string dlu_reply;
   //WE NEED TO READ TRAILING " " FROM USER PROTOCOL MSG
-  //TODO: ALL
+  read_msg(client_fd, 1);
+  if(check_if_string_exists_in_file(active_user, "backup_list.txt")) {
+    dlu_reply = "DLR NOK\n";
+    write_msg(client_fd, dlu_reply);
+  } else {
+    remove_line_from_file_with_key(active_user, "cs_user_list.txt");
+    dlu_reply = "DLR OK\n";
+    write_msg(client_fd, dlu_reply);
+  }
   return;
 }
 
