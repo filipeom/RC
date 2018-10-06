@@ -335,14 +335,20 @@ ask_bs_for_files(std::string dir, std::string user, std::string ip,
 }
 
 std::string
-update_file_list(int &N, std::string file_lst1, std::string file_lst2) {
-  /*  Compare files from lst2 against files from lst1
+update_file_list(int N, int &new_N, std::string file_lst1, std::string file_lst2) {
+  /*  ATENTION! lst1 contains only file information
+   *  while lst2 comes in the format: 
+   *    >n file_information*
+   *  n being the number of files that come next.
+   *
+   *  Pseudo-Code of what this funcition does:
+   *  Compare files from lst2 against files from lst1
    *  if files not in lst2 
    *    then update updated file lst
-   *    N++
+   *    new_N++
    *  else if files in lst2 but have different date or time 
    *    then update updated file lst
-   *    N++
+   *    new_N++
    *  else 
    *    reapeat until no more files in lst1.
    *  return updated file lst
@@ -365,7 +371,7 @@ backup_user_dir() {
   if(find_user_dir(dirname, active_user, bs_ip, bs_port)) {
     bs_file_lst = ask_bs_for_files(dirname, active_user, bs_ip, bs_port);
     //TODO:
-    updated_files = update_file_list(new_N, file_list, bs_file_lst);
+    updated_files = update_file_list(N, new_N, file_list, bs_file_lst);
     //END-TODO;
     send_client_bs_and_file_list(bs_ip, bs_port, N/*update to new_N*/, updated_files);
     return;
