@@ -4,7 +4,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <string>
-
+bool is_directory_empty(std::string dirname); 
 std::string read_string(int fd);
 void write_to_file_append(std::string file, std::string msg);
 bool check_if_string_exists_in_file(std::string key, std::string file);

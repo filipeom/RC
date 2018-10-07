@@ -1,5 +1,6 @@
 #include <iostream>
 #include <csignal>
+#include <filesystem>
 #include <fstream>
 #include <stdio.h>
 #include <stdlib.h>
@@ -209,7 +210,10 @@ receive_user_files() {
   new_dir = active_user+"/"+dir;
   mkdir(new_dir.c_str(), 0700);
 
-  file_list = std::to_string(N) + " ";
+  file_list = std::to_string(N) + "\n";
+  write_to_file_append(active_user+"/"+dir+".txt", file_list);  
+  file_list.clear();
+
   for(int i = 0; i < N; i++) {
     std::string line;
     std::string filename, date, time, size;
@@ -219,16 +223,14 @@ receive_user_files() {
     time = read_string(client_fd);
     size = read_string(client_fd);
     
-    line = filename+" "+date+" "+time+" "+size+" "; 
+    line = filename+" "+date+" "+time+" "+size+"\n"; 
     read_file(client_fd, new_dir+"/"+filename, stoi(size));
+    write_to_file_append(active_user+"/"+dir+".txt", line);  
 
     std::cout << "Received: " << filename << std::endl; 
-    file_list.append(line);
   }
   read_msg(client_fd, 1);
-  file_list.append("\n");
   
-  write_to_file_append(active_user+"/"+dir+".txt", file_list);
   std::cout << "Received " << N << " files with success.\n";
   
   upl_reply = "UPR OK\n";
@@ -241,6 +243,51 @@ send_user_files() {
   //WE NEED TO READ TRAILING " " FROM USER PROTOCOL MSG
   //TODO: ALL
   return;
+}
+void
+delete_dir(std::string msg) {
+  /*TODO- automatic remover user se ultima dir
+   * tenho de verificar se o user existe?
+   * fazer NOK status_reply
+  */
+  std::string dirname, user, line;
+  std::string status_reply, path;
+  std::ifstream file;
+
+  user = msg.substr(4, 5);
+  dirname = msg.substr(10, (msg.size() - 1) - 10);
+
+  file.open(user+"/"+dirname+".txt");
+
+  std::getline(file, line);
+  while(std::getline(file, line)) {
+    std::string filename, file_path;
+    int space;
+
+    space = line.find(" ");
+    filename = line.substr(0, space);
+    file_path = user+"/"+dirname+"/"+filename;
+
+    remove(file_path.c_str());
+  }
+  file.close(); 
+
+  path = user+"/"+dirname;
+  remove(path.c_str()); path.clear();
+  path = user+"/"+dirname+".txt";
+  remove(path.c_str()); path.clear();
+  path = user;
+
+  if(is_directory_empty(path.c_str())) {
+    std::cout << "directory is empty; can be deleted\n";
+    remove(path.c_str());
+    remove_line_from_file_with_key(user, "bs_user_list.txt");
+  }
+
+  status_reply = "DBR OK\n";
+  sendto(bs_udp_fd, status_reply.c_str(), status_reply.size(), 0,
+      (struct sockaddr*) &cs_udp_client_addr,
+      cs_client_addr_len);
 }
 
 int
@@ -309,7 +356,7 @@ main(int argc, char **argv) {
       } else if(strncmp(buffer, "LSU", 3) == 0) {
         add_user(buffer); 
       } else if(strncmp(buffer, "DLB", 3) == 0) {
-      
+        delete_dir(buffer); 
       }
     }
     close(bs_udp_fd);

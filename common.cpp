@@ -141,3 +141,19 @@ find_user_and_check_pass(std::string file, std::string user,
   rply = "AUR NEW\n";
   return rply;
 }
+
+bool
+is_directory_empty(std::string dirname) {
+  int n = 0;
+  struct dirent *d;
+  DIR *dir = opendir(dirname.c_str());
+  while ((d = readdir(dir)) != NULL) {
+    if(++n > 2)
+      break;
+  }
+  closedir(dir);
+  if (n <= 2) //Directory Empty
+    return true;
+  else
+    return false;
+}

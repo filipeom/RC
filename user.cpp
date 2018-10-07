@@ -117,7 +117,7 @@ deluser() {
     connect_to_central_server(cs_tcp_fd, cs_tcp_addr, cs_host,
         CSname, CSport);
     write_msg(cs_tcp_fd, auth_str);
-    
+
     auth_reply = read_msg(cs_tcp_fd, 3);
     if(auth_reply.compare("AUR") == 0) {
       read_msg(cs_tcp_fd, 1);
@@ -130,7 +130,7 @@ deluser() {
         if(dlu_reply.compare("DLR") == 0) {
           read_msg(cs_tcp_fd, 1);
           dlu_reply.clear(); dlu_reply = read_msg(cs_tcp_fd, 3);
-          
+
           if(dlu_reply.compare("OK\n") == 0) {
             std::cout << "User: \"" + user + "\" was deleted with success.\n";
             logout();
@@ -354,7 +354,7 @@ dirlist() {
         return;
       }
     }
-  } else {
+  } else {//assim o user app fecha
     std::cout << "[WARNING] No available session.\n";
   }
   /* Should never reach */
@@ -406,7 +406,50 @@ filelist() {
 
 void
 delete_dir() {
-  return;
+  std::string dirname, auth_reply, protocol, status;
+  std::cin >> dirname;
+
+  if (logged) {
+    connect_to_central_server(cs_tcp_fd, cs_tcp_addr, cs_host,
+        CSname, CSport);
+    write_msg(cs_tcp_fd, auth_str);
+    auth_reply = read_msg(cs_tcp_fd, 3);
+
+    if(auth_reply.compare("AUR") == 0) {
+      read_msg(cs_tcp_fd, 1);
+      auth_reply.clear(); auth_reply = read_msg(cs_tcp_fd, 3);
+
+      if(auth_reply.compare("NOK") == 0) {
+        read_msg(cs_tcp_fd, 1);
+        std::cout << "[AUR-NOK] Auth was unsuccessful.\n";
+        close(cs_tcp_fd);
+        return;
+      } else if(auth_reply.compare("OK\n") == 0){
+
+        protocol = "DEL " + dirname + "\n";
+        write_msg(cs_tcp_fd, protocol);
+
+        status = read_msg(cs_tcp_fd, 3);
+        if(status.compare("DDR") == 0) {
+          read_msg(cs_tcp_fd, 1);
+          status.clear(); status = read_msg(cs_tcp_fd, 3);
+
+          if(status.compare("OK\n") == 0) {
+            std::cout << "directory was deleted\n";
+          } else if(status.compare("NOK") == 0) {
+            read_msg(cs_tcp_fd, 1);
+            std::cout << "operation unsuccessful\n";
+          } else if(status.compare("ERR") == 0) {
+            read_msg(cs_tcp_fd, 1);
+            std::cout << "protocol err\n";
+          } 
+        } else {
+          std::cout << "protocol err\n";
+        }
+      }
+    }
+    close(cs_tcp_fd);
+  } 
 }
 
 int

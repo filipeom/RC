@@ -390,7 +390,6 @@ restore_user_dir() {
 
 void
 dir_list() {
-  //active_user;
   std::ifstream file;
   std::string directories, line, reply;
   int N = 0;
@@ -435,8 +434,51 @@ file_list() {
 
 void
 delete_dir() {
+  //TODO-DDR ERR
+  std::string dirname, bs_ip, bs_port;
+  std::string status_reply, protocol;
+  char bs_reply[10] = {0};
   //WE NEED TO READ TRAILING " " FROM USER PROTOCOL MSG
-  //TODO: ALL
+  read_msg(client_fd, 1);
+  dirname = read_string(client_fd);
+  if(find_user_dir(dirname, active_user, bs_ip, bs_port)) {
+
+    get_backup_server_udp(cs_udp_fd, bs_ip, bs_port,
+        bs_udp_addr, bs_addrlen);  
+    protocol = "DLB " + active_user + " " + dirname + "\n";
+    sendto(cs_udp_fd, protocol.c_str(), protocol.size(), 0,
+        (struct sockaddr*) &bs_udp_addr,
+        bs_addrlen);
+    recvfrom(cs_udp_fd, bs_reply, sizeof(bs_reply), 0,
+        (struct sockaddr*) &bs_udp_addr,
+        (socklen_t*) &bs_addrlen);
+
+    if(strncmp(bs_reply, "DBR", 3) == 0) {
+      if(strncmp(bs_reply+4, "OK", 2) == 0) {
+        remove_line_from_file_with_key(active_user, "backup_list.txt");
+        status_reply = "DDR OK\n";
+        write_msg(client_fd, status_reply);
+        close(client_fd);
+        return;
+      }
+      if(strncmp(bs_reply+4, "NOK", 3) == 0) {
+        status_reply = "DDR NOK\n";
+        write_msg(client_fd, status_reply);
+        close(client_fd);
+        return;
+      }
+    } else {
+      status_reply = "DDR ERR\n";
+      write_msg(client_fd, status_reply);
+      close(client_fd);
+      return;
+    }
+
+  }
+  /* dir doesnt exist */
+  status_reply = "DDR NOK\n";
+  write_msg(client_fd, status_reply);
+  close(client_fd);
   return;
 }
 
