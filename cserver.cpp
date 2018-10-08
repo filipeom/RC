@@ -72,7 +72,7 @@ check_if_bs_exists(std::string file, std::string ip,
   std::ifstream ifile;
 
   ifile.open(file, std::ios::in);
-
+ 
   while(std::getline(ifile, line)) {
     std::string bs_ip, bs_port;
     int space;
@@ -293,15 +293,16 @@ register_user_in_bs(std::string msg, std::string ip,
   std::string protocol;
 
   protocol = "LSU " + msg+"\n";
-  get_backup_server_udp(cs_udp_fd, ip, port,
+  get_backup_server_udp(bs_udp_fd, ip, port,
       bs_udp_addr, bs_addrlen);
-  sendto(cs_udp_fd, protocol.c_str(), protocol.size(), 0,
+  sendto(bs_udp_fd, protocol.c_str(), protocol.size(), 0,
       (struct sockaddr*)&bs_udp_addr,
       bs_addrlen);
-  recvfrom(cs_udp_fd, buffer, sizeof(buffer), 0,
+  recvfrom(bs_udp_fd, buffer, sizeof(buffer), 0,
       (struct sockaddr*)&bs_udp_addr,
       (socklen_t*)&bs_addrlen);
   std::cout << buffer;
+  close(bs_udp_fd);
   return;
 }
 
@@ -323,14 +324,15 @@ ask_bs_for_files(std::string dir, std::string user, std::string ip,
   std::string protocol;
 
   protocol = "LSF " + user + " " + dir +"\n";
-  get_backup_server_udp(cs_udp_fd, ip, port,
+  get_backup_server_udp(bs_udp_fd, ip, port,
       bs_udp_addr, bs_addrlen);
-  sendto(cs_udp_fd, protocol.c_str(), protocol.size(), 0,
+  sendto(bs_udp_fd, protocol.c_str(), protocol.size(), 0,
       (struct sockaddr*)&bs_udp_addr,
       bs_addrlen);
-  recvfrom(cs_udp_fd, buffer, sizeof(buffer), 0,
+  recvfrom(bs_udp_fd, buffer, sizeof(buffer), 0,
       (struct sockaddr*)&bs_udp_addr,
       (socklen_t*)&bs_addrlen);
+  close(bs_udp_fd);
   return buffer; 
 }
 
@@ -449,34 +451,32 @@ delete_dir() {
   dirname = read_string(client_fd);
   if(find_user_dir(dirname, active_user, bs_ip, bs_port)) {
 
-    get_backup_server_udp(cs_udp_fd, bs_ip, bs_port,
+    get_backup_server_udp(bs_udp_fd, bs_ip, bs_port,
         bs_udp_addr, bs_addrlen);  
     protocol = "DLB " + active_user + " " + dirname + "\n";
-    sendto(cs_udp_fd, protocol.c_str(), protocol.size(), 0,
+    sendto(bs_udp_fd, protocol.c_str(), protocol.size(), 0,
         (struct sockaddr*) &bs_udp_addr,
         bs_addrlen);
-    recvfrom(cs_udp_fd, bs_reply, sizeof(bs_reply), 0,
+    recvfrom(bs_udp_fd, bs_reply, sizeof(bs_reply), 0,
         (struct sockaddr*) &bs_udp_addr,
         (socklen_t*) &bs_addrlen);
+    close(bs_udp_fd);
 
     if(strncmp(bs_reply, "DBR", 3) == 0) {
       if(strncmp(bs_reply+4, "OK", 2) == 0) {
         remove_line_from_file_with_key(active_user, "backup_list.txt");
         status_reply = "DDR OK\n";
         write_msg(client_fd, status_reply);
-        close(client_fd);
         return;
       }
       if(strncmp(bs_reply+4, "NOK", 3) == 0) {
         status_reply = "DDR NOK\n";
         write_msg(client_fd, status_reply);
-        close(client_fd);
         return;
       }
     } else {
       status_reply = "DDR ERR\n";
       write_msg(client_fd, status_reply);
-      close(client_fd);
       return;
     }
 
