@@ -161,16 +161,19 @@ void
 get_user_file_list(std::string msg) {
   int space;
   std::ifstream file;
-  std::string user, dir, lsf_reply, line; 
+  std::string user, dir, lsf_reply, line, files; 
   
   space = msg.find(" ", 4);
   user = msg.substr(4, space - 4);
   dir = msg.substr(space+1, (msg.size() - (space+1))-1);
 
   file.open(user+"/"+dir+".txt");
-  std::getline(file, line);
+  while(std::getline(file, line)) {
+    files.append(line + " ");
+  }
+  files.append("\n");
   lsf_reply = "LFD ";
-  lsf_reply.append(line);
+  lsf_reply.append(files);
 
   sendto(bs_udp_fd, lsf_reply.c_str(), lsf_reply.size(), 0,
       (struct sockaddr*)&cs_udp_client_addr,

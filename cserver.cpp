@@ -435,8 +435,16 @@ dir_list() {
 
 void
 file_list() {
-  //WE NEED TO READ TRAILING " " FROM USER PROTOCOL MSG
-  //TODO: ALL
+  std::string lsf, lsf_reply, dir;
+  std::string ip, port, files;
+  
+  read_msg(client_fd, 1);
+  dir = read_string(client_fd);
+  find_user_dir(dir, active_user, ip, port);
+  files = ask_bs_for_files(dir, active_user, ip, port);
+  lsf_reply = "LFD " + ip + " " + port + files.substr(3, files.size());
+  std::cout << lsf_reply;
+  write_msg(client_fd, lsf_reply);
   return;
 }
 

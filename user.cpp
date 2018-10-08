@@ -178,12 +178,11 @@ process_files_reply(std::string &ip, std::string &port, int &N) {
     time = read_string(cs_tcp_fd);
     size = read_string(cs_tcp_fd);
 
-    line = filename+" "+date+" "+time+" "+size+" ";
+    line = std::to_string(i+1)+": " + filename+" "+date+" "+time+" "+size+"\n";
     files.append(line);
   }
   //READ TRAILING \n
   read_msg(cs_tcp_fd, 1);
-  files.append("\n");
   return files;
 }
 
@@ -391,7 +390,8 @@ filelist() {
         if(cs_reply.compare("LFD") == 0) {
           files_resp = process_files_reply(bs_ip, bs_port, N);
           close(cs_tcp_fd);
-          std::cout << bs_ip<<" "<<bs_port<<" "<<N<<" "<<files_resp;
+          std::cout << "from: " + bs_ip +" "+bs_port+"\n"+std::to_string(N)+" files found: \n";
+          std::cout << files_resp;
         }
       } else if(auth_reply.compare("NOK") == 0){
         read_msg(cs_tcp_fd, 1);
