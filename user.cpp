@@ -301,7 +301,107 @@ backup() {
 }
 
 void
+download_files_from_bs(std::string dirname) {
+  int N, i;
+  std::string filename, date, time, size;
+
+  read_msg(bs_tcp_fd, 1);
+  N = stoi(read_string(bs_tcp_fd));
+
+  for(i = 0; i < N; i++) {
+    filename = read_string(bs_tcp_fd);
+    date = read_string(bs_tcp_fd);
+    time = read_string(bs_tcp_fd);
+    size = read_string(bs_tcp_fd);
+
+    std::string path = dirname+"/"+filename;
+    read_file(bs_tcp_fd, path, stoi(size));
+    std::cout << "Received: " + filename +"\n";
+  }
+  read_msg(bs_tcp_fd, 1);
+  return;
+}
+
+void
 restore() {
+  std::string rst, rst_reply;
+  std::string auth_reply, dirname;
+  std::string bs_ip, bs_port;
+  std::string rsb, rsb_reply;
+
+  std::cin >> dirname;
+
+  if(logged) {
+    connect_to_central_server(cs_tcp_fd, cs_tcp_addr, cs_host,
+        CSname, CSport);
+    write_msg(cs_tcp_fd, auth_str);
+
+    auth_reply = read_msg(cs_tcp_fd, 3);
+    if(auth_reply.compare("AUR") == 0) {
+      read_msg(cs_tcp_fd, 1);
+
+      auth_reply.clear(); auth_reply = read_msg(cs_tcp_fd, 3);
+      if(auth_reply.compare("OK\n") == 0) {
+        rst = "RST " + dirname + "\n";
+        write_msg(cs_tcp_fd, rst);
+
+        rst_reply = read_msg(cs_tcp_fd, 3);  
+        if(rst_reply.compare("RSR") == 0) {
+          read_msg(cs_tcp_fd, 1);
+
+          rst_reply.clear(); rst_reply = read_msg(cs_tcp_fd, 4);
+          if(rst_reply.compare("EOF\n") == 0) {
+            close(cs_tcp_fd);
+            std::cout <<"[RSR-EOF] \n";
+          } else if(rst_reply.compare("ERR\n") == 0) {
+            close(cs_tcp_fd);
+            std::cout << "[RSR-ERR] \n";
+          } else {
+            bs_ip = rst_reply;
+            bs_ip.append(read_string(cs_tcp_fd));
+            bs_port = read_string(cs_tcp_fd);
+
+            std::cout << "Restore from: " << bs_ip << " " << bs_port << std::endl;
+
+            close(cs_tcp_fd);
+            connect_to_backup_server(bs_tcp_fd, bs_ip, bs_port, bs_tcp_addr);
+            write_msg(bs_tcp_fd, auth_str);
+
+            auth_reply.clear(); auth_reply = read_msg(bs_tcp_fd, 3);
+            if(auth_reply.compare("AUR") == 0) {
+              read_msg(bs_tcp_fd, 1);
+              auth_reply.clear(); auth_reply = read_msg(bs_tcp_fd, 3);
+              if(auth_reply.compare("OK\n") == 0) {
+                rsb = "RSB " + dirname +"\n";
+                write_msg(bs_tcp_fd, rsb);
+
+                rsb_reply = read_msg(bs_tcp_fd, 3);
+                if(rsb_reply.compare("RBR") == 0) {
+                  std::string path = dirname + "-after-restore";
+                  mkdir(path.c_str(), 0700);
+                  download_files_from_bs(dirname);
+                  close(bs_tcp_fd);
+                }
+              } else if(auth_reply.compare("NOK") == 0) {
+                read_msg(bs_tcp_fd, 1);
+                close(bs_tcp_fd);
+                std::cout << "[AUR-NOK] Auth was unsuccessful.\n";
+              }
+            }
+          }  //ISTO É HORRIVEL
+        }  
+      } else if(auth_reply.compare("NOK") == 0) {
+        read_msg(cs_tcp_fd, 1);
+        close(cs_tcp_fd);
+        std::cout << "[AUR-NOK] Auth was unsuccess.\n";
+      }
+    } else {
+      std::cout << "[ERR] Something went terrible wrong.\n";
+      close(cs_tcp_fd);
+    }
+  } else {
+    std::cout << "[WARNING] No available session.\n";
+  }
   return;
 }
 

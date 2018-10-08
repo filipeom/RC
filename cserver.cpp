@@ -345,7 +345,7 @@ send_client_bs_and_file_list(std::string ip, std::string port,
   msg.append(file_list);
   write_msg(client_fd, msg);
   return;
-}
+} 
 
 std::string
 ask_bs_for_files(std::string dir, std::string user, std::string ip, 
@@ -421,8 +421,19 @@ backup_user_dir() {
 
 void
 restore_user_dir() {
+  std::string auth_reply, rst_reply;
+  std::string dirname, bs_ip, bs_port;
+  
   //WE NEED TO READ TRAILING " " FROM USER PROTOCOL MSG
-  //TODO: ALL
+  read_msg(client_fd, 1);
+  
+  dirname = read_string(client_fd);
+  if(find_user_dir(dirname, active_user, bs_ip, bs_port)) {
+    rst_reply = "RSR " + bs_ip + " " + bs_port + "\n"; 
+  } else {
+    rst_reply = "RSR EOF\n";
+  }
+  write_msg(client_fd, rst_reply);
   return;
 }
 

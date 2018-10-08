@@ -243,8 +243,41 @@ receive_user_files() {
 
 void
 send_user_files() {
+  std::ifstream file;
+  int N;
+  std::string path, dirname, line, rbr;
+
   //WE NEED TO READ TRAILING " " FROM USER PROTOCOL MSG
-  //TODO: ALL
+  read_msg(client_fd, 1);
+  dirname = read_string(client_fd);
+  rbr = "RBR ";
+  path = active_user+"/"+dirname+".txt";
+
+  file.open(path);
+  std::getline(file, line);
+  
+  N = stoi(line); rbr.append(std::to_string(N) + " ");
+  std::cout << N << std::endl;
+  write_msg(client_fd, rbr);
+
+  for(int i = 0; i < N; i++) {
+    int space;
+    std::string filename, size;
+
+    std::getline(file, line);
+    space = line.find(" ");
+    filename = line.substr(0, space);
+    size = line.substr(space+21, line.size()-(space+21));
+
+    std::cout << filename << " " << size << std::endl;
+
+    path.clear(); path = active_user+"/"+dirname+"/"+filename;
+    std::cout << path << std::endl;
+    write_msg(client_fd, line+" ");
+    write_file(client_fd, path, stoi(size));
+  }
+  file.close();
+  write_msg(client_fd, "\n");
   return;
 }
 void
