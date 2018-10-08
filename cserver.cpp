@@ -65,6 +65,36 @@ parse_input(int argc, char **argv) {
   return;
 }
 
+void
+delete_user_dir_from_file(std::string user, std::string dir) {
+  std::ifstream ifile;
+  std::ofstream ofile;
+  std::string line;
+
+  ifile.open("backup_list.txt");
+  ofile.open("temp.txt");
+
+  while(std::getline(ifile, line)) {
+    std::string username, dirname;
+    int space, length;
+    
+    username = line.substr(0, 5);
+    space = line.find(" ");
+    space = line.find(" ", space + 1);
+    space = line.find(" ", space + 1);
+    length = line.size() - 1 - space;
+    dirname = line.substr(space + 1, length );
+
+    if(!((username.compare(user) == 0) && (dirname.compare(dir) == 0)))
+      ofile << line << std::endl;
+  }
+  ofile.close();
+  ifile.close();
+  remove("backup_list.txt");
+  rename("temp.txt","backup_list.txt");
+  return;
+}
+
 bool
 check_if_bs_exists(std::string file, std::string ip,
     std::string port) {
@@ -472,7 +502,7 @@ delete_dir() {
 
     if(strncmp(bs_reply, "DBR", 3) == 0) {
       if(strncmp(bs_reply+4, "OK", 2) == 0) {
-        remove_line_from_file_with_key(active_user, "backup_list.txt");
+        delete_user_dir_from_file(active_user, dirname);
         status_reply = "DDR OK\n";
         write_msg(client_fd, status_reply);
         return;
@@ -490,6 +520,7 @@ delete_dir() {
 
   }
   /* dir doesnt exist */
+  std::cout << "dir dosent exist\n";
   status_reply = "DDR NOK\n";
   write_msg(client_fd, status_reply);
   close(client_fd);
