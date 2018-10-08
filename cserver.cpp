@@ -366,28 +366,119 @@ ask_bs_for_files(std::string dir, std::string user, std::string ip,
   return buffer; 
 }
 
-std::string
+std::string 
 update_file_list(int N, int &new_N, std::string file_lst1, std::string file_lst2) {
-  /*  ATENTION! lst1 contains only file information
-   *  while lst2 comes in the format: 
-   *    >n file_information*
-   *  n being the number of files that come next.
-   *
-   *  Pseudo-Code of what this funcition does:
-   *  Compare files from lst2 against files from lst1
-   *  if files not in lst2 
-   *    then update updated file lst
-   *    new_N++
-   *  else if files in lst2 but have different date or time 
-   *    then update updated file lst
-   *    new_N++
-   *  else 
-   *    reapeat until no more files in lst1.
-   *  return updated file lst
-   */
-  std::string updated_file_lst = file_lst1;
+  std::string name1, data1, time1, size1;
+  std::string name2, data2, time2, size2;
+  std::string update_file_list, line;
 
-  return updated_file_lst;
+  std::size_t front2, back2;
+  std::size_t front1, back1;
+  std::size_t n;
+
+  bool copy = false;
+  bool diff_names = true;
+
+  front2 = file_lst2.find(" ");
+  n = stoi(file_lst2.substr(0, front2));
+  std::cout << "N:"+std::to_string(n)+'\n';
+
+  back2 = front2;
+  front2 += 1;
+
+  front1 = 0;
+  back1 = 0;
+  while(true) {
+
+    if(front1 == file_lst1.find("\n", front1)) {
+      break;
+    }
+
+    front1 = file_lst1.find(" ", front1);
+    name1 = file_lst1.substr(back1, front1 - back1);
+
+    front1 += 1;
+    back1  = front1;
+
+    front1 = file_lst1.find(" ", front1);
+    data1  = file_lst1.substr(back1, front1 - back1 );
+
+    front1 += 1;
+    back1  = front1;
+
+    front1 = file_lst1.find(" ", front1);
+    time1  = file_lst1.substr(back1, front1 - back1);
+
+    front1 += 1;
+    back1  = front1;
+
+    front1 = file_lst1.find(" ", front1);
+    size1  = file_lst1.substr(back1, front1 - back1);
+
+    front1 += 1;
+    back1 = front1;
+
+    std::cout << "name1: |"+name1+"|\n";
+    std::cout << "data1: |"+data1+"|\n";
+    std::cout << "time1: |"+time1+"|\n";
+    std::cout << "size1: |"+size1+"|\n\n";
+
+    while(true) {
+
+      if(front2 == file_lst2.find("\n",front2)) {
+        break;
+      }
+
+      front2 = file_lst2.find(" ", front2);
+      name2 = file_lst2.substr(back2+1, front2 - back2 - 1 );
+
+      back2 = front2;
+      front2 += 1;
+
+      front2 = file_lst2.find(" ", front2);
+      data2 = file_lst2.substr(back2+1, front2 - back2 - 1);
+
+      back2 = front2;
+      front2 += 1;
+
+      front2 = file_lst2.find(" ", front2);
+      time2 = file_lst2.substr(back2+1, front2 - back2 - 1);
+
+      back2 = front2;
+      front2 += 1;
+
+      front2 = file_lst2.find(" ", front2);
+      size2 = file_lst2.substr(back2+1, front2 - back2 - 1);
+
+      back2 = front2;
+      front2 += 1;
+
+      std::cout << "name2: |"+name2+"|\n";
+      std::cout << "data2: |"+data2+"|\n";
+      std::cout << "time2: |"+time2+"|\n";
+      std::cout << "size2: |"+size2+"|\n\n";
+
+      /*COMPARACOES*/
+      if(name1.compare(name2) == 0) {
+        diff_names = false;
+        if((data1.compare(data2) != 0) || (time1.compare(time2) != 0)){
+          copy = true;
+        }
+      }
+    }
+    if(copy || diff_names) {
+      std::cout << "copy\n";
+      new_N += 1;
+      line.clear(); 
+      line = name1 + " " + data1 + " " + time1 + " " + size1+ " ";
+      update_file_list.append(line);
+    }
+    copy = false;
+    diff_names = true;
+  }
+  update_file_list.append("\n");
+  std::cout << update_file_list;
+  return update_file_list;
 }
 
 void
