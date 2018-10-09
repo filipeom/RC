@@ -580,13 +580,12 @@ dir_list() {
     }
   }
   if(N == 0){
-    reply = "LDR 0 \n";//COM ou sem espaco??? 
+    reply = "LDR 0\n";//COM ou sem espaco??? 
     write_msg(client_fd, reply);
     return;
   }
   reply = "LDR " + std::to_string(N) + directories + "\n";
   write_msg(client_fd, reply);
-  //TODO-if unsuccessful return N=0
   return;
 }
 
