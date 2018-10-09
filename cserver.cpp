@@ -476,6 +476,9 @@ update_file_list(int N, int &new_N, std::string file_lst1, std::string file_lst2
     copy = false;
     diff_names = true;
   }
+  if(new_N == 0){
+    update_file_list.append(" ");
+  }
   update_file_list.append("\n");
   std::cout << update_file_list;
   return update_file_list;
@@ -556,6 +559,11 @@ dir_list() {
       directories.append(" " + directory_name);
       N += 1;
     }
+  }
+  if(N == 0){
+    reply = "LDR 0 \n";//COM ou sem espaco??? 
+    write_msg(client_fd, reply);
+    return;
   }
   reply = "LDR " + std::to_string(N) + directories + "\n";
   write_msg(client_fd, reply);
