@@ -374,17 +374,21 @@ update_file_list(int N, int &new_N, std::string file_lst1, std::string file_lst2
 
   std::size_t front2, back2;
   std::size_t front1, back1;
-  std::size_t n;
+  std::size_t n, safe_pos;
+
+  std::cout << file_lst1;
+  std::cout << file_lst2;
 
   bool copy = false;
   bool diff_names = true;
-
-  std::cout << file_lst1 << "\n" << file_lst2;
+  bool break1 = false;
+  bool break2 = false;
 
   front2 = file_lst2.find(" ");
   n = stoi(file_lst2.substr(0, front2));
   std::cout << "N:"+std::to_string(n)+'\n';
 
+  safe_pos = front2;
   back2 = front2;
   front2 += 1;
 
@@ -392,7 +396,7 @@ update_file_list(int N, int &new_N, std::string file_lst1, std::string file_lst2
   back1 = 0;
   while(true) {
 
-    if(front1 == file_lst1.find("\n", front1)) {
+    if(break1){
       break;
     }
 
@@ -415,7 +419,14 @@ update_file_list(int N, int &new_N, std::string file_lst1, std::string file_lst2
     back1  = front1;
 
     front1 = file_lst1.find(" ", front1);
-    size1  = file_lst1.substr(back1, front1 - back1);
+    if(front1 == std::string::npos){
+
+      size1 = file_lst1.substr(back1, file_lst1.size() - 1 - back1);
+      break1 = true;
+
+    } else {
+      size1  = file_lst1.substr(back1, front1 - back1);
+    }
 
     front1 += 1;
     back1 = front1;
@@ -425,9 +436,15 @@ update_file_list(int N, int &new_N, std::string file_lst1, std::string file_lst2
     std::cout << "time1: |"+time1+"|\n";
     std::cout << "size1: |"+size1+"|\n\n";
 
+    break2 = false;
+    front2 = safe_pos;
+    back2 = front2;
+    front2 += 1;
+    
+
     while(true) {
 
-      if(front2 == file_lst2.find("\n",front2)) {
+      if(break2) {
         break;
       }
 
@@ -450,7 +467,13 @@ update_file_list(int N, int &new_N, std::string file_lst1, std::string file_lst2
       front2 += 1;
 
       front2 = file_lst2.find(" ", front2);
-      size2 = file_lst2.substr(back2+1, front2 - back2 - 1);
+      if(front2 == std::string::npos){
+
+        size2 = file_lst2.substr(back2 + 1, file_lst2.size() - 1 - back2 - 1);
+        break2 = true;
+      } else {
+        size2 = file_lst2.substr(back2 + 1, front2 - back2 - 1);
+      }
 
       back2 = front2;
       front2 += 1;
@@ -472,14 +495,11 @@ update_file_list(int N, int &new_N, std::string file_lst1, std::string file_lst2
       std::cout << "copy\n";
       new_N += 1;
       line.clear(); 
-      line = name1 + " " + data1 + " " + time1 + " " + size1+ " ";
+      line = " " + name1 + " " + data1 + " " + time1 + " " + size1;
       update_file_list.append(line);
     }
     copy = false;
     diff_names = true;
-  }
-  if(new_N == 0){
-    update_file_list.append(" ");
   }
   update_file_list.append("\n");
   std::cout << update_file_list;
