@@ -1,4 +1,6 @@
 #include <iostream>
+#include <cstdlib>
+#include <ctime>
 #include <fstream>
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,6 +20,7 @@
 #define PORT 58043
 
 int CSport = 0;
+int number_of_BSs = 0;
 std::string active_user;
 
 /* CS TCP SERVER */
@@ -141,6 +144,7 @@ register_backup_server(int fd, struct sockaddr_in addr,
     reply = "RGR OK\n";
   }
 
+  number_of_BSs++;
   sendto(fd, reply.c_str(), reply.size(), 0,
       (struct sockaddr*)&addr,
       addrlen);
@@ -169,10 +173,11 @@ unregister_backup_server(int fd, struct sockaddr_in addr,
   ofile.open("temp.txt");
 
   while(std::getline(ifile, line)) {
-    if(line.compare(search_string) != 0)
+    if(line.compare(search_string) != 0) {
       ofile << line << std::endl;
-    else
-      reply = "UAR OK\n";
+    } else {
+      reply.clear(); reply = "UAR OK\n";
+    }
   }
   ofile.close();
   ifile.close();
@@ -182,10 +187,6 @@ unregister_backup_server(int fd, struct sockaddr_in addr,
   sendto(fd, reply.c_str(), reply.size(), 0,
       (struct sockaddr*) &addr, addrlen);
 
-  //TODO UAR NOK/ERR
-  return;
-  //should never happen
-  reply = "UAR NOK\n";
   return;
 }
 
@@ -304,7 +305,8 @@ get_bs_for_user(std::string &ip, std::string &port) {
   int space;
   std::string line;
   std::ifstream file;
-
+  
+  
   file.open("bs_list.txt");
   std::getline(file, line);
 
@@ -578,7 +580,6 @@ file_list() {
   find_user_dir(dir, active_user, ip, port);
   files = ask_bs_for_files(dir, active_user, ip, port);
   lsf_reply = "LFD " + ip + " " + port + files.substr(3, files.size());
-  std::cout << lsf_reply;
   write_msg(client_fd, lsf_reply);
   return;
 }

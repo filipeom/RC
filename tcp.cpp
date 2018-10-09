@@ -101,8 +101,6 @@ read_file(int fd, std::string file, int size) {
     ptr += nread;
   }
   
-  std::cout << file << std::endl;
-
   if((filefd = open(file.c_str(), O_WRONLY | O_CREAT | O_TRUNC,
                 S_IRUSR | S_IWUSR)) == -1) {
     perror("open");

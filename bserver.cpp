@@ -267,11 +267,10 @@ send_user_files() {
     filename = line.substr(0, space);
     size = line.substr(space+21, line.size()-(space+21));
 
-    std::cout << filename << " " << size << std::endl;
     write_msg(client_fd, " ");
     path.clear(); path = active_user+"/"+dirname+"/"+filename;
-    std::cout << path << std::endl;
     write_msg(client_fd, line + " ");
+    std::cout << "Sending: " +filename+"...\n";
     write_file(client_fd, path, stoi(size));
   }
   file.close();
@@ -302,19 +301,22 @@ delete_dir(std::string msg) {
     filename = line.substr(0, space);
     file_path = user+"/"+dirname+"/"+filename;
 
+    std::cout << "Deleting: " << file_path << "...\n";
     remove(file_path.c_str());
   }
   file.close(); 
 
   path = user+"/"+dirname;
+  std::cout << "Deleting: " << path << "...\n";
   remove(path.c_str()); path.clear();
   path = user+"/"+dirname+".txt";
   remove(path.c_str()); path.clear();
   path = user;
 
   if(is_directory_empty(path.c_str())) {
-    std::cout << "directory is empty; can be deleted\n";
+    std::cout << "Deleting: "<< path << "...\n";
     remove(path.c_str());
+    std::cout << "Removing user: \"" << user << "\"...\n";
     remove_line_from_file_with_key(user, "bs_user_list.txt");
   }
 

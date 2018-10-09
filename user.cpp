@@ -138,7 +138,7 @@ deluser() {
           } else if(dlu_reply.compare("NOK") == 0) {
             read_msg(cs_tcp_fd, 1);
             std::cout << "Unable to delete user: \"" + 
-              user + "\", notably because the user still has information stored.\n";
+              user + "\", because user still has information stored.\n";
             close(cs_tcp_fd);
           }
         }
@@ -236,7 +236,7 @@ receive_updated_file_list_and_send_files(std::string dir) {
       } else {
         if(auth_reply.compare("NOK") == 0) {
           read_msg(bs_tcp_fd, 1);
-          std::cout << "[AUR-NOK] BS Auth was unsuccessful.\n" << std::endl;
+          std::cout << "[AUR-NOK] Auth was unsuccessful.\n" << std::endl;
           close(bs_tcp_fd);
         }
       }
@@ -351,7 +351,7 @@ restore() {
           rst_reply.clear(); rst_reply = read_msg(cs_tcp_fd, 4);
           if(rst_reply.compare("EOF\n") == 0) {
             close(cs_tcp_fd);
-            std::cout <<"[RSR-EOF] \n";
+            std::cout <<"[RSR-EOF] Restore request cannot be answered.\n";
           } else if(rst_reply.compare("ERR\n") == 0) {
             close(cs_tcp_fd);
             std::cout << "[RSR-ERR] \n";
@@ -376,9 +376,8 @@ restore() {
 
                 rsb_reply = read_msg(bs_tcp_fd, 3);
                 if(rsb_reply.compare("RBR") == 0) {
-                  std::string path = dirname + "-after-restore";
-                  mkdir(path.c_str(), 0700);
-                  download_files_from_bs(path);
+                  mkdir(dirname.c_str(), 0700);
+                  download_files_from_bs(dirname);
                   close(bs_tcp_fd);
                 }
               } else if(auth_reply.compare("NOK") == 0) {
@@ -436,7 +435,7 @@ dirlist() {
         N = stoi(read_string(cs_tcp_fd));
 
         if(N == 0){
-          std::cout << "[LSD] Unable to list user directories.\n";
+          std::cout << "User doesn't have any directories stored.\n";
           close(cs_tcp_fd);
           return;
         }
@@ -534,16 +533,16 @@ delete_dir() {
           status.clear(); status = read_msg(cs_tcp_fd, 3);
 
           if(status.compare("OK\n") == 0) {
-            std::cout << "directory was deleted\n";
+            std::cout << "Directory \"" +dirname+ "\" was deleted with success.\n";
           } else if(status.compare("NOK") == 0) {
             read_msg(cs_tcp_fd, 1);
-            std::cout << "operation unsuccessful\n";
+            std::cout << "Unable to delete \""+dirname+"\".\n";
           } else if(status.compare("ERR") == 0) {
             read_msg(cs_tcp_fd, 1);
-            std::cout << "protocol err\n";
+            std::cout << "[DDR-ERR] TODO\n";
           } 
         } else {
-          std::cout << "protocol err\n";
+          std::cout << "[AUR-ERR] TODO\n";
         }
       }
     }
