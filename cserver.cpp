@@ -240,11 +240,9 @@ read_file_list(std::string &dir, int &N) {
     time = read_string(client_fd);
     size = read_string(client_fd);
 
-    line = filename+" "+date+" "+time+" "+size+" ";
+    line = " " + filename+" "+date+" "+time+" "+size;
     file_list.append(line);
   }
-  //READ TRAILING \n
-  read_msg(client_fd, 1);
   file_list.append("\n");
   return file_list;
 }
@@ -341,7 +339,7 @@ send_client_bs_and_file_list(std::string ip, std::string port,
     int N, std::string file_list) {
   std::string msg;
 
-  msg = "BKR "+ip+" "+port+" "+std::to_string(N)+" ";
+  msg = "BKR "+ip+" "+port+" "+std::to_string(N);
   msg.append(file_list);
   write_msg(client_fd, msg);
   return;
@@ -378,6 +376,8 @@ update_file_list(int N, int &new_N, std::string file_lst1, std::string file_lst2
 
   bool copy = false;
   bool diff_names = true;
+
+  std::cout << file_lst1 << "\n" << file_lst2;
 
   front2 = file_lst2.find(" ");
   n = stoi(file_lst2.substr(0, front2));
@@ -496,7 +496,7 @@ backup_user_dir() {
   file_list = read_file_list(dirname, N);
   if(find_user_dir(dirname, active_user, bs_ip, bs_port)) {
     bs_file_lst = ask_bs_for_files(dirname, active_user, bs_ip, bs_port);
-    updated_files = update_file_list(N, new_N, file_list, bs_file_lst);
+    updated_files = update_file_list(N, new_N, file_list.substr(1, file_list.size()), bs_file_lst.substr(4, bs_file_lst.size()));
     send_client_bs_and_file_list(bs_ip, bs_port, new_N, updated_files);
     return;
   } else if(find_user_bs(active_user, bs_ip, bs_port)) {
@@ -538,10 +538,7 @@ dir_list() {
   //WE NEED TO READ TRAILING " " FROM USER PROTOCOL MSG
   read_msg(client_fd,1);
   file.open("backup_list.txt");
-  /*if(!ifile.is_open()) {
-    fprintf(stderr, "Could not open backup_list.txt\n");
-    exit(EXIT_FAILURE);
-  }*/
+  
   while(std::getline(file, line)) {
     std::string username;
     username = line.substr(0,5);

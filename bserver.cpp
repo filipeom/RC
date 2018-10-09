@@ -169,10 +169,10 @@ get_user_file_list(std::string msg) {
 
   file.open(user+"/"+dir+".txt");
   while(std::getline(file, line)) {
-    files.append(line + " ");
+    files.append(" " +line);
   }
   files.append("\n");
-  lsf_reply = "LFD ";
+  lsf_reply = "LFD";
   lsf_reply.append(files);
 
   sendto(bs_udp_fd, lsf_reply.c_str(), lsf_reply.size(), 0,
@@ -229,11 +229,9 @@ receive_user_files() {
     line = filename+" "+date+" "+time+" "+size+"\n"; 
     read_file(client_fd, new_dir+"/"+filename, stoi(size));
     write_to_file_append(active_user+"/"+dir+".txt", line);  
-
+    read_msg(client_fd, 1);
     std::cout << "Received: " << filename << std::endl; 
   }
-  read_msg(client_fd, 1);
-  
   std::cout << "Received " << N << " files with success.\n";
   
   upl_reply = "UPR OK\n";
@@ -256,7 +254,7 @@ send_user_files() {
   file.open(path);
   std::getline(file, line);
   
-  N = stoi(line); rbr.append(std::to_string(N) + " ");
+  N = stoi(line); rbr.append(std::to_string(N));
   std::cout << N << std::endl;
   write_msg(client_fd, rbr);
 
@@ -270,10 +268,10 @@ send_user_files() {
     size = line.substr(space+21, line.size()-(space+21));
 
     std::cout << filename << " " << size << std::endl;
-
+    write_msg(client_fd, " ");
     path.clear(); path = active_user+"/"+dirname+"/"+filename;
     std::cout << path << std::endl;
-    write_msg(client_fd, line+" ");
+    write_msg(client_fd, line + " ");
     write_file(client_fd, path, stoi(size));
   }
   file.close();

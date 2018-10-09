@@ -97,13 +97,13 @@ get_files(std::string dirname) {
         strftime(date_time, 20, "%d.%m.%Y %H:%M:%S",
             localtime(&(stats.st_mtime)));
         file_size = std::to_string(stats.st_size);
-
-        file_stats = filename + " " + date_time + " " + file_size + " ";
+        
+        file_stats = " " + filename + " " + date_time + " " + file_size;
         files.append(file_stats);
         N++;
       }
     }
-    msg = "BCK " + dirname + " " + std::to_string(N) + " ";
+    msg = "BCK " + dirname + " " + std::to_string(N);
     msg.append(files);
     msg.append("\n");
     closedir(dir);

@@ -181,8 +181,6 @@ process_files_reply(std::string &ip, std::string &port, int &N) {
     line = std::to_string(i+1)+": " + filename+" "+date+" "+time+" "+size+"\n";
     files.append(line);
   }
-  //READ TRAILING \n
-  read_msg(cs_tcp_fd, 1);
   return files;
 }
 
@@ -214,24 +212,25 @@ receive_updated_file_list_and_send_files(std::string dir) {
 
       if(auth_reply.compare("OK\n") == 0) {
         N = stoi(read_string(cs_tcp_fd));
-        upl = "UPL " + dir + " " + std::to_string(N) + " ";
+        upl = "UPL " + dir + " " + std::to_string(N);
         write_msg(bs_tcp_fd, upl);
 
         for(int i = 0; i < N; i++) {
           std::string line;
           std::string filename, date, time, size;
+          
+          write_msg(bs_tcp_fd, " ");
 
           filename = read_string(cs_tcp_fd);
           date = read_string(cs_tcp_fd);
           time = read_string(cs_tcp_fd);
           size = read_string(cs_tcp_fd);
 
-          line = filename+" "+date+" "+time+" "+size+" ";
+          line = filename+" "+date+" "+time+" "+size + " ";
           std::cout << "Uploading: " << filename << "...\n";
           write_msg(bs_tcp_fd, line);
           write_file(bs_tcp_fd, dir+"/"+filename, stoi(size));
         }
-        read_msg(cs_tcp_fd, 1);
         close(cs_tcp_fd);
         write_msg(bs_tcp_fd, "\n");
       } else {
@@ -316,9 +315,9 @@ download_files_from_bs(std::string dirname) {
 
     std::string path = dirname+"/"+filename;
     read_file(bs_tcp_fd, path, stoi(size));
+    read_msg(bs_tcp_fd, 1);
     std::cout << "Received: " + filename +"\n";
-  }
-  read_msg(bs_tcp_fd, 1);
+  }  
   return;
 }
 
@@ -379,7 +378,7 @@ restore() {
                 if(rsb_reply.compare("RBR") == 0) {
                   std::string path = dirname + "-after-restore";
                   mkdir(path.c_str(), 0700);
-                  download_files_from_bs(dirname);
+                  download_files_from_bs(path);
                   close(bs_tcp_fd);
                 }
               } else if(auth_reply.compare("NOK") == 0) {
