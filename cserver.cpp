@@ -493,10 +493,8 @@ backup_user_dir() {
   file_list = read_file_list(dirname, N);
   if(find_user_dir(dirname, active_user, bs_ip, bs_port)) {
     bs_file_lst = ask_bs_for_files(dirname, active_user, bs_ip, bs_port);
-    //TODO:
     updated_files = update_file_list(N, new_N, file_list, bs_file_lst);
-    //END-TODO;
-    send_client_bs_and_file_list(bs_ip, bs_port, N/*update to new_N*/, updated_files);
+    send_client_bs_and_file_list(bs_ip, bs_port, new_N, updated_files);
     return;
   } else if(find_user_bs(active_user, bs_ip, bs_port)) {
     //IF USER IS REGISTERED IN A BS SEND FILES THERE
