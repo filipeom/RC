@@ -163,9 +163,16 @@ std::string
 process_files_reply(std::string &ip, std::string &port, int &N) {
   int i;
   std::string files;
-  read_msg(cs_tcp_fd, 1);
+  std::string inc;
 
-  ip = read_string(cs_tcp_fd);
+  read_msg(cs_tcp_fd, 1);
+  
+  inc = read_msg(cs_tcp_fd, 4);
+  if(inc.compare("NOK\n") == 0)
+    return "NOK\n";
+
+  ip = inc;
+  ip.append(read_string(cs_tcp_fd));
   port = read_string(cs_tcp_fd);
   N = stoi(read_string(cs_tcp_fd));
 
@@ -263,7 +270,9 @@ backup() {
 
       if(auth_reply.compare("OK\n") == 0) {
         /* This string ends with: " \n" */
-        file_list = get_files(dirname);
+        std::string aux = get_files(dirname);
+        file_list = "BCK " + dirname + " ";
+        file_list.append(aux);
         /* Send BCK msg*/
         write_msg(cs_tcp_fd, file_list);
         bck_reply = read_msg(cs_tcp_fd, 3);
@@ -487,9 +496,13 @@ filelist() {
         cs_reply = read_msg(cs_tcp_fd, 3);
         if(cs_reply.compare("LFD") == 0) {
           files_resp = process_files_reply(bs_ip, bs_port, N);
-          close(cs_tcp_fd);
-          std::cout << "from: " + bs_ip +" "+bs_port+"\n"+std::to_string(N)+" files found: \n";
-          std::cout << files_resp;
+          if(files_resp.compare("NOK\n") == 0) {
+            std::cout << "List files request cannot be answered by cs.\n";
+          } else {
+            close(cs_tcp_fd);
+            std::cout << "from: " + bs_ip +" "+bs_port+"\n"+std::to_string(N)+" files found: \n";
+            std::cout << files_resp;
+          }
         }
       } else if(auth_reply.compare("NOK") == 0){
         read_msg(cs_tcp_fd, 1);

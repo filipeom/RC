@@ -613,10 +613,15 @@ file_list() {
 
   read_msg(client_fd, 1);
   dir = read_string(client_fd);
-  find_user_dir(dir, active_user, ip, port);
-  files = ask_bs_for_files(dir, active_user, ip, port);
-  lsf_reply = "LFD " + ip + " " + port + files.substr(3, files.size());
-  write_msg(client_fd, lsf_reply);
+  if(find_user_dir(dir, active_user, ip, port)) {
+    find_user_dir(dir, active_user, ip, port);
+    files = ask_bs_for_files(dir, active_user, ip, port);
+    lsf_reply = "LFD " + ip + " " + port + files.substr(3, files.size());
+    write_msg(client_fd, lsf_reply);
+  } else {
+    lsf_reply = "LFD NOK\n";
+    write_msg(client_fd, lsf_reply);
+  }
   return;
 }
 

@@ -1,6 +1,5 @@
 #include <iostream>
 #include <csignal>
-#include <filesystem>
 #include <fstream>
 #include <stdio.h>
 #include <stdlib.h>
@@ -166,13 +165,10 @@ get_user_file_list(std::string msg) {
   space = msg.find(" ", 4);
   user = msg.substr(4, space - 4);
   dir = msg.substr(space+1, (msg.size() - (space+1))-1);
-
-  file.open(user+"/"+dir+".txt");
-  while(std::getline(file, line)) {
-    files.append(" " +line);
-  }
-  files.append("\n");
-  lsf_reply = "LFD";
+  
+  files = get_files(user+"/"+dir);
+  
+  lsf_reply = "LFD ";
   lsf_reply.append(files);
 
   sendto(bs_udp_fd, lsf_reply.c_str(), lsf_reply.size(), 0,
@@ -214,7 +210,6 @@ receive_user_files() {
   mkdir(new_dir.c_str(), 0700);
 
   file_list = std::to_string(N) + "\n";
-  write_to_file_append(active_user+"/"+dir+".txt", file_list);  
   file_list.clear();
 
   for(int i = 0; i < N; i++) {
@@ -228,7 +223,6 @@ receive_user_files() {
     
     line = filename+" "+date+" "+time+" "+size+"\n"; 
     read_file(client_fd, new_dir+"/"+filename, stoi(size));
-    write_to_file_append(active_user+"/"+dir+".txt", line);  
     read_msg(client_fd, 1);
     std::cout << "Received: " << filename << std::endl; 
   }
@@ -290,29 +284,11 @@ delete_dir(std::string msg) {
   user = msg.substr(4, 5);
   dirname = msg.substr(10, (msg.size() - 1) - 10);
 
-  file.open(user+"/"+dirname+".txt");
-
-  std::getline(file, line);
-  while(std::getline(file, line)) {
-    std::string filename, file_path;
-    int space;
-
-    space = line.find(" ");
-    filename = line.substr(0, space);
-    file_path = user+"/"+dirname+"/"+filename;
-
-    std::cout << "Deleting: " << file_path << "...\n";
-    remove(file_path.c_str());
-  }
-  file.close(); 
-
   path = user+"/"+dirname;
   std::cout << "Deleting: " << path << "...\n";
-  remove(path.c_str()); path.clear();
-  path = user+"/"+dirname+".txt";
-  remove(path.c_str()); path.clear();
-  path = user;
-
+  remove_all(path.c_str()); 
+  
+  path.clear(); path = user;
   if(is_directory_empty(path.c_str())) {
     std::cout << "Deleting: "<< path << "...\n";
     remove(path.c_str());

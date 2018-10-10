@@ -25,5 +25,8 @@ common.o: common.h common.cpp
 clean:
 	rm CS BS user *.txt *.o
 
+trash:
+	rm *.txt
+
 pkg:
 	tar -cvf RC-Cloud-Backup_G43.tar *.cpp *.h Makefile

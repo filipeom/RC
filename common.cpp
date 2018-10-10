@@ -103,7 +103,7 @@ get_files(std::string dirname) {
         N++;
       }
     }
-    msg = "BCK " + dirname + " " + std::to_string(N);
+    msg = std::to_string(N);
     msg.append(files);
     msg.append("\n");
     closedir(dir);
@@ -112,6 +112,25 @@ get_files(std::string dirname) {
     exit(EXIT_FAILURE);
   }
   return msg;
+}
+
+void
+remove_all(std::string path) {
+  DIR *dir;
+  struct dirent *ent;
+  
+  if((dir = opendir(path.c_str())) != NULL) { 
+    while((ent = readdir(dir)) != NULL) {
+      std::string filename = ent->d_name;
+      if(filename.compare(".") && filename.compare("..")) {
+        std::string full_path = path+"/"+filename;
+        remove(full_path.c_str());
+        std::cout << "Removing: " + path + "/" +filename + "...\n";
+      }
+    }
+  }
+  remove(path.c_str());
+  return;
 }
 
 std::string
