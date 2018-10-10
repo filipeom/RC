@@ -20,7 +20,6 @@
 #define PORT 58043
 
 int CSport = 0;
-int number_of_BSs = 0;
 std::string active_user;
 
 /* CS TCP SERVER */
@@ -80,7 +79,7 @@ delete_user_dir_from_file(std::string user, std::string dir) {
   while(std::getline(ifile, line)) {
     std::string username, dirname;
     int space, length;
-    
+
     username = line.substr(0, 5);
     space = line.find(" ");
     space = line.find(" ", space + 1);
@@ -105,7 +104,7 @@ check_if_bs_exists(std::string file, std::string ip,
   std::ifstream ifile;
 
   ifile.open(file, std::ios::in);
- 
+
   while(std::getline(ifile, line)) {
     std::string bs_ip, bs_port;
     int space;
@@ -144,7 +143,6 @@ register_backup_server(int fd, struct sockaddr_in addr,
     reply = "RGR OK\n";
   }
 
-  number_of_BSs++;
   sendto(fd, reply.c_str(), reply.size(), 0,
       (struct sockaddr*)&addr,
       addrlen);
@@ -300,24 +298,43 @@ find_user_bs(std::string user, std::string &ip, std::string &port) {
   return false;
 }
 
-void
-get_bs_for_user(std::string &ip, std::string &port) {
-  int space;
+int get_number_of_BSs(){
+  int num = 0;
   std::string line;
   std::ifstream file;
-  
-  
-  file.open("bs_list.txt");
-  std::getline(file, line);
 
-  space = line.find(" ");
-  ip = line.substr(0, space);
-  port = line.substr(space+1, line.size() - (space+1));
+  file.open("bs_list.txt");
+  while(std::getline(file, line)){
+    num++;
+  }
+
+  return num;
+}
+
+void
+get_bs_for_user(std::string &ip, std::string &port) {
+  int space, contador = 1;
+  std::string line;
+  std::ifstream file;
+  int num_linhas = get_number_of_BSs();
+  int random_number = rand() % num_linhas + 1;
+
+  file.open("bs_list.txt");
+
+  while(std::getline(file, line)){
+    if(contador == random_number){
+      space = line.find(" ");
+      ip = line.substr(0, space);
+      port = line.substr(space+1, line.size() - (space+1));
+      return;
+    }
+    contador++;
+  }
   return;
 }
 
 void
-register_user_in_bs(std::string msg, std::string ip, 
+register_user_in_bs(std::string msg, std::string ip,
     std::string port) {
   char buffer[128] = {0};
   std::string protocol;
@@ -345,10 +362,10 @@ send_client_bs_and_file_list(std::string ip, std::string port,
   msg.append(file_list);
   write_msg(client_fd, msg);
   return;
-} 
+}
 
 std::string
-ask_bs_for_files(std::string dir, std::string user, std::string ip, 
+ask_bs_for_files(std::string dir, std::string user, std::string ip,
     std::string port) {
   char buffer[1024] = {0};
   std::string protocol;
@@ -363,10 +380,10 @@ ask_bs_for_files(std::string dir, std::string user, std::string ip,
       (struct sockaddr*)&bs_udp_addr,
       (socklen_t*)&bs_addrlen);
   close(bs_udp_fd);
-  return buffer; 
+  return buffer;
 }
 
-std::string 
+std::string
 update_file_list(int N, int &new_N, std::string file_lst1, std::string file_lst2) {
   std::string name1, data1, time1, size1;
   std::string name2, data2, time2, size2;
@@ -440,7 +457,7 @@ update_file_list(int N, int &new_N, std::string file_lst1, std::string file_lst2
     front2 = safe_pos;
     back2 = front2;
     front2 += 1;
-    
+
 
     while(true) {
 
@@ -494,7 +511,7 @@ update_file_list(int N, int &new_N, std::string file_lst1, std::string file_lst2
     if(copy || diff_names) {
       std::cout << "copy\n";
       new_N += 1;
-      line.clear(); 
+      line.clear();
       line = " " + name1 + " " + data1 + " " + time1 + " " + size1;
       update_file_list.append(line);
     }
@@ -537,13 +554,13 @@ void
 restore_user_dir() {
   std::string auth_reply, rst_reply;
   std::string dirname, bs_ip, bs_port;
-  
+
   //WE NEED TO READ TRAILING " " FROM USER PROTOCOL MSG
   read_msg(client_fd, 1);
-  
+
   dirname = read_string(client_fd);
   if(find_user_dir(dirname, active_user, bs_ip, bs_port)) {
-    rst_reply = "RSR " + bs_ip + " " + bs_port + "\n"; 
+    rst_reply = "RSR " + bs_ip + " " + bs_port + "\n";
   } else {
     rst_reply = "RSR EOF\n";
   }
@@ -556,18 +573,18 @@ dir_list() {
   std::ifstream file;
   std::string directories, line, reply;
   int N = 0;
-  
+
   //WE NEED TO READ TRAILING " " FROM USER PROTOCOL MSG
   read_msg(client_fd,1);
   file.open("backup_list.txt");
-  
+
   while(std::getline(file, line)) {
     std::string username;
     username = line.substr(0,5);
     if(username.compare(active_user) == 0) {
       int space1, space2, length;
       std::string directory_name;
-      
+
       space1 = line.find(" ");
       space1 = line.find(" ", space1 + 1);
       space1 = line.find(" ", space1 + 1);
@@ -580,7 +597,7 @@ dir_list() {
     }
   }
   if(N == 0){
-    reply = "LDR 0\n";//COM ou sem espaco??? 
+    reply = "LDR 0\n";//COM ou sem espaco???
     write_msg(client_fd, reply);
     return;
   }
@@ -593,7 +610,7 @@ void
 file_list() {
   std::string lsf, lsf_reply, dir;
   std::string ip, port, files;
-  
+
   read_msg(client_fd, 1);
   dir = read_string(client_fd);
   find_user_dir(dir, active_user, ip, port);
@@ -615,7 +632,7 @@ delete_dir() {
   if(find_user_dir(dirname, active_user, bs_ip, bs_port)) {
 
     get_backup_server_udp(bs_udp_fd, bs_ip, bs_port,
-        bs_udp_addr, bs_addrlen);  
+        bs_udp_addr, bs_addrlen);
     protocol = "DLB " + active_user + " " + dirname + "\n";
     sendto(bs_udp_fd, protocol.c_str(), protocol.size(), 0,
         (struct sockaddr*) &bs_udp_addr,
