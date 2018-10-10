@@ -5,7 +5,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <string>
-bool is_directory_empty(std::string dirname); 
+bool is_directory_empty(std::string dirname);
 std::string read_string(int fd);
 void write_to_file_append(std::string file, std::string msg);
 void remove_all(std::string path);
@@ -15,3 +15,4 @@ std::string find_string(std::string key, std::string file);
 std::string get_files(std::string dirname);
 std::string find_user_and_check_pass(std::string file,
     std::string user, std::string pass);
+bool is_number(const std::string& s);

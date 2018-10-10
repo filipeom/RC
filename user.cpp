@@ -97,6 +97,8 @@ login() {
         std::cout << "User \"" +user +"\" is now logged-in.\n";
         logged = true;
       }
+    } else {
+      std::cout << "[AUR-ERR] Unexpected protocol message.\n";
     }
     close(cs_tcp_fd);
   } else {
@@ -134,10 +136,10 @@ deluser() {
           if(dlu_reply.compare("OK\n") == 0) {
             std::cout << "User: \"" + user + "\" was deleted with success.\n";
             logout();
-            close(cs_tcp_fd);          
+            close(cs_tcp_fd);
           } else if(dlu_reply.compare("NOK") == 0) {
             read_msg(cs_tcp_fd, 1);
-            std::cout << "Unable to delete user: \"" + 
+            std::cout << "Unable to delete user: \"" +
               user + "\", because user still has information stored.\n";
             close(cs_tcp_fd);
           }
@@ -148,7 +150,7 @@ deluser() {
         std::cout << "[AUR-NOK] Auth was unsuccessful.\n";
       }
     } else {
-      std::cout << "[AUR-ERR] Something went terrible wrong.\n";
+      std::cout << "[AUR-ERR] Unexpected protocol message.\n";
       close(cs_tcp_fd);
       exit(EXIT_FAILURE);
     }
@@ -166,7 +168,7 @@ process_files_reply(std::string &ip, std::string &port, int &N) {
   std::string inc;
 
   read_msg(cs_tcp_fd, 1);
-  
+
   inc = read_msg(cs_tcp_fd, 4);
   if(inc.compare("NOK\n") == 0)
     return "NOK\n";
@@ -201,7 +203,7 @@ receive_updated_file_list_and_send_files(std::string dir) {
   if(bck_reply.compare("EOF\n") == 0) {
     std::cout << "[BKR-EOF] No Backup Server available to backup.\n";
   } else if (bck_reply.compare("ERR\n") == 0) {
-    std::cout << "[BKR-ERR] Backup request is not correctly formulated.\n"; 
+    std::cout << "[BKR-ERR] Backup request is not correctly formulated.\n";
   } else {
     ip = bck_reply;
     ip.append(read_string(cs_tcp_fd));
@@ -225,7 +227,7 @@ receive_updated_file_list_and_send_files(std::string dir) {
         for(int i = 0; i < N; i++) {
           std::string line;
           std::string filename, date, time, size;
-          
+
           write_msg(bs_tcp_fd, " ");
 
           filename = read_string(cs_tcp_fd);
@@ -243,13 +245,16 @@ receive_updated_file_list_and_send_files(std::string dir) {
       } else {
         if(auth_reply.compare("NOK") == 0) {
           read_msg(bs_tcp_fd, 1);
-          std::cout << "[AUR-NOK] Auth was unsuccessful.\n" << std::endl;
+          std::cout << "[AUR-NOK] Auth was unsuccessful.\n";
           close(bs_tcp_fd);
         }
       }
+    } else {
+      std::cout << "[AUR-ERR] Unexpected protocol message.\n";
     }
+
   }
-  return;  
+  return;
 }
 
 void
@@ -278,7 +283,7 @@ backup() {
         bck_reply = read_msg(cs_tcp_fd, 3);
 
         if(bck_reply.compare("BKR") == 0) {
-          read_msg(cs_tcp_fd, 1);    
+          read_msg(cs_tcp_fd, 1);
           receive_updated_file_list_and_send_files(dirname);
           upl_reply = read_msg(bs_tcp_fd, 3);
 
@@ -301,6 +306,8 @@ backup() {
         std::cout << "[AUR-NOK] Auth was unsuccessful.\n";
         close(cs_tcp_fd);
       }
+    } else {
+      std::cout << "[AUR-ERR] Unexpected protocol message\n";
     }
   } else {
     std::cout << "[WARNING] No available session to backup from.\n";
@@ -326,7 +333,7 @@ download_files_from_bs(std::string dirname) {
     read_file(bs_tcp_fd, path, stoi(size));
     read_msg(bs_tcp_fd, 1);
     std::cout << "Received: " + filename +"\n";
-  }  
+  }
   return;
 }
 
@@ -353,7 +360,7 @@ restore() {
         rst = "RST " + dirname + "\n";
         write_msg(cs_tcp_fd, rst);
 
-        rst_reply = read_msg(cs_tcp_fd, 3);  
+        rst_reply = read_msg(cs_tcp_fd, 3);
         if(rst_reply.compare("RSR") == 0) {
           read_msg(cs_tcp_fd, 1);
 
@@ -396,7 +403,7 @@ restore() {
               }
             }
           }  //ISTO É HORRIVEL
-        }  
+        }
       } else if(auth_reply.compare("NOK") == 0) {
         read_msg(cs_tcp_fd, 1);
         close(cs_tcp_fd);
@@ -448,7 +455,7 @@ dirlist() {
           close(cs_tcp_fd);
           return;
         }
-        cont = N; 
+        cont = N;
         while(cont != 0) {
           dirname = read_string(cs_tcp_fd);
           dirlist.append(dirname + " ");
@@ -553,14 +560,14 @@ delete_dir() {
           } else if(status.compare("ERR") == 0) {
             read_msg(cs_tcp_fd, 1);
             std::cout << "[DDR-ERR] TODO\n";
-          } 
+          }
         } else {
           std::cout << "[AUR-ERR] TODO\n";
         }
       }
     }
     close(cs_tcp_fd);
-  } 
+  }
 }
 
 int

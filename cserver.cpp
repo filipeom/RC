@@ -127,6 +127,7 @@ register_backup_server(int fd, struct sockaddr_in addr,
     socklen_t addrlen, std::string str) {
   int space1;
   int space2;
+  char dest[16] = {0};
   std::string ip, port, reply;
 
   space1 = str.find(" ");
@@ -134,8 +135,10 @@ register_backup_server(int fd, struct sockaddr_in addr,
   ip = str.substr(space1 + 1, space2 - (space1 + 1));
   port = str.substr(space2 + 1, (str.size()-1) - (space2+1));
 
-  //TODO: RGR ERR
-  if(check_if_bs_exists("bs_list.txt", ip, port)) {
+  if((inet_pton(AF_INET, ip.c_str(), dest) == 0) || !is_number(port)) {
+    reply = "RGR ERR\n";
+  }
+  else if(check_if_bs_exists("bs_list.txt", ip, port)) {
     reply = "RGR NOK\n";
   } else {
     write_to_file_append("bs_list.txt", ip + " " + port+"\n");
@@ -146,7 +149,6 @@ register_backup_server(int fd, struct sockaddr_in addr,
   sendto(fd, reply.c_str(), reply.size(), 0,
       (struct sockaddr*)&addr,
       addrlen);
-
   return;
 }
 
@@ -154,11 +156,12 @@ register_backup_server(int fd, struct sockaddr_in addr,
 void
 unregister_backup_server(int fd, struct sockaddr_in addr,
     socklen_t addrlen, std::string str) {
-  std::string ip, port, reply;
+  std::string ip, port, reply = "";
   std::string line, search_string;
   std::ifstream ifile;
   std::ofstream ofile;
   int space1, space2;
+  char dest[16] = {0};
 
   space1 = str.find(" ");
   space2 = str.find(" ", space1+1);
@@ -167,9 +170,15 @@ unregister_backup_server(int fd, struct sockaddr_in addr,
 
   search_string = ip + " " + port;
 
+  if((inet_pton(AF_INET, ip.c_str(), dest) == 0) || !is_number(port)) {
+    reply = "UAR ERR\n";
+    sendto(fd, reply.c_str(), reply.size(), 0,
+        (struct sockaddr*) &addr, addrlen);
+    return;
+  }
+
   ifile.open("bs_list.txt");
   ofile.open("temp.txt");
-
   while(std::getline(ifile, line)) {
     if(line.compare(search_string) != 0) {
       ofile << line << std::endl;
@@ -181,6 +190,9 @@ unregister_backup_server(int fd, struct sockaddr_in addr,
   ifile.close();
   remove("bs_list.txt");
   rename("temp.txt", "bs_list.txt");
+  if(reply.empty()) {
+    reply.clear(); reply = "UAR NOK\n";
+  }
 
   sendto(fd, reply.c_str(), reply.size(), 0,
       (struct sockaddr*) &addr, addrlen);
@@ -366,7 +378,7 @@ send_client_bs_and_file_list(std::string ip, std::string port,
 std::string
 ask_bs_for_files(std::string dir, std::string user, std::string ip,
     std::string port) {
-  char buffer[1024] = {0};
+  char buffer[2048] = {0};
   std::string protocol;
 
   protocol = "LSF " + user + " " + dir +"\n";
@@ -596,7 +608,7 @@ dir_list() {
     }
   }
   if(N == 0){
-    reply = "LDR 0\n";//COM ou sem espaco???
+    reply = "LDR 0\n";
     write_msg(client_fd, reply);
     return;
   }
@@ -626,7 +638,6 @@ file_list() {
 
 void
 delete_dir() {
-  //TODO-DDR ERR
   std::string dirname, bs_ip, bs_port;
   std::string status_reply, protocol;
   char bs_reply[10] = {0};
@@ -666,7 +677,7 @@ delete_dir() {
 
   }
   /* dir doesnt exist */
-  std::cout << "dir dosent exist\n";
+  std::cout << "Directory does not exist.\n";
   status_reply = "DDR NOK\n";
   write_msg(client_fd, status_reply);
   close(client_fd);
@@ -703,7 +714,6 @@ main(int argc, char **argv) {
         protocol = read_msg(client_fd, 3);
         if(protocol.compare("AUT") == 0) {
           auth_user();
-          //@Filipe if(if_user is authenticate) ....
           protocol.clear(); protocol = read_msg(client_fd, 3);
           if(protocol.compare("DLU") == 0) {
             delete_user();
@@ -740,9 +750,11 @@ main(int argc, char **argv) {
       if(strncmp(buffer, "REG", 3) == 0) {
         register_backup_server(cs_udp_fd, bs_udp_client_addr,
             bs_client_addr_len, buffer);
+        memset(buffer, '\0', 128);
       }else if(strncmp(buffer, "UNR", 3) == 0) {
         unregister_backup_server(cs_udp_fd, bs_udp_client_addr,
             bs_client_addr_len, buffer);
+        memset(buffer, '\0', 128);
       }
     }
     close(cs_udp_fd);

@@ -140,6 +140,12 @@ exit_backup_server(int signum) {
 }
 
 void
+exit_backup_child(int signum) {
+  close(bs_tcp_fd);
+  exit(EXIT_SUCCESS);
+}
+
+void
 add_user(std::string msg) {
   std::string auth, auth_reply, user;
 
@@ -165,9 +171,9 @@ get_user_file_list(std::string msg) {
   space = msg.find(" ", 4);
   user = msg.substr(4, space - 4);
   dir = msg.substr(space+1, (msg.size() - (space+1))-1);
-  
+
   files = get_files(user+"/"+dir);
-  
+
   lsf_reply = "LFD ";
   lsf_reply.append(files);
 
@@ -273,8 +279,7 @@ send_user_files() {
 }
 void
 delete_dir(std::string msg) {
-  /*TODO- automatic remover user se ultima dir
-   * tenho de verificar se o user existe?
+  /*TODO-
    * fazer NOK status_reply
   */
   std::string dirname, user;
@@ -285,17 +290,18 @@ delete_dir(std::string msg) {
 
   path = user+"/"+dirname;
   std::cout << "Deleting: " << path << "...\n";
-  remove_all(path.c_str()); 
-  
+  remove_all(path.c_str());
+  status_reply = "DBR OK\n";
   path.clear(); path = user;
   if(is_directory_empty(path.c_str())) {
     std::cout << "Deleting: "<< path << "...\n";
-    remove(path.c_str());
+    if(remove(path.c_str()) == false) {
+      status_reply.clear(); status_reply = "DBR NOK\n";
+    }
     std::cout << "Removing user: \"" << user << "\"...\n";
     remove_line_from_file_with_key(user, "bs_user_list.txt");
   }
 
-  status_reply = "DBR OK\n";
   sendto(bs_udp_fd, status_reply.c_str(), status_reply.size(), 0,
       (struct sockaddr*) &cs_udp_client_addr,
       cs_client_addr_len);
@@ -317,6 +323,7 @@ main(int argc, char **argv) {
     exit(EXIT_FAILURE);
     /* CHILD HANDLES INCOMING CLIENTS */
   } else if (pid == 0) {
+    signal(SIGINT, exit_backup_child);
     create_backup_server_tcp(bs_tcp_fd, bs_tcp_addr, BSport);
     while(true) {
       client_len = sizeof(client_addr);

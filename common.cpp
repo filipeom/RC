@@ -1,5 +1,6 @@
 #include "common.h"
 #include "tcp.h"
+#include <algorithm>
 
 std::string
 read_string(int fd) {
@@ -13,8 +14,14 @@ read_string(int fd) {
   return str;
 }
 
+bool is_number(const std::string& s)
+{
+    return !s.empty() && std::find_if(s.begin(),
+        s.end(), [](char c) { return !std::isdigit(c); }) == s.end();
+}
+
 void
-remove_line_from_file_with_key(std::string key, 
+remove_line_from_file_with_key(std::string key,
     std::string filename) {
   std::string line;
   std::ifstream ifile;
@@ -56,7 +63,7 @@ write_to_file_append(std::string file, std::string msg) {
   std::ofstream ofile;
 
   ofile.open(file, std::ios::app);
-  ofile << msg; 
+  ofile << msg;
   ofile.close();
   return;
 }
@@ -73,7 +80,7 @@ find_string(std::string key, std::string file) {
     if(found != std::string::npos) {
       msg = line;
     }
-  } 
+  }
   return msg;
 }
 
@@ -97,7 +104,7 @@ get_files(std::string dirname) {
         strftime(date_time, 20, "%d.%m.%Y %H:%M:%S",
             localtime(&(stats.st_mtime)));
         file_size = std::to_string(stats.st_size);
-        
+
         file_stats = " " + filename + " " + date_time + " " + file_size;
         files.append(file_stats);
         N++;
@@ -118,8 +125,8 @@ void
 remove_all(std::string path) {
   DIR *dir;
   struct dirent *ent;
-  
-  if((dir = opendir(path.c_str())) != NULL) { 
+
+  if((dir = opendir(path.c_str())) != NULL) {
     while((ent = readdir(dir)) != NULL) {
       std::string filename = ent->d_name;
       if(filename.compare(".") && filename.compare("..")) {
