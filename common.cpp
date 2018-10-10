@@ -129,6 +129,7 @@ remove_all(std::string path) {
       }
     }
   }
+  closedir(dir);
   remove(path.c_str());
   return;
 }

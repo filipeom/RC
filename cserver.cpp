@@ -317,18 +317,18 @@ get_bs_for_user(std::string &ip, std::string &port) {
   std::string line;
   std::ifstream file;
   int num_linhas = get_number_of_BSs();
+  srand(time(NULL));
   int random_number = rand() % num_linhas + 1;
 
+  std::cout << "lines: " << num_linhas << "rnd: " << random_number << std::endl;
   file.open("bs_list.txt");
-
-  for(int i = 0; i <= random_number; i++){
-    if(i == random_number){
+  for(int i = 0; i < random_number; i++){
       std::getline(file, line);
-      space = line.find(" ");
-      ip = line.substr(0, space);
-      port = line.substr(space+1, line.size() - (space+1));
-    }
   }
+  file.close();
+  space = line.find(" ");
+  ip = line.substr(0, space);
+  port = line.substr(space+1, line.size() - (space+1));
   return;
 }
 
@@ -680,7 +680,6 @@ main(int argc, char **argv) {
 
   signal(SIGCHLD, SIG_IGN);
   signal(SIGPIPE, SIG_IGN);
-  srand(time(NULL));
 
   parse_input(argc, argv);
 
