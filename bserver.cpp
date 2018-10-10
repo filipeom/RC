@@ -92,7 +92,7 @@ get_bs_ip() {
     exit(EXIT_FAILURE);
   }
   a = (struct in_addr*) h->h_addr_list[0];
-  return inet_ntoa(*a); 
+  return inet_ntoa(*a);
 }
 
 void
@@ -108,7 +108,7 @@ register_backup_server(int fd, struct sockaddr_in addr, int addrlen) {
   recvfrom(fd, buffer, sizeof(buffer), 0,
       (struct sockaddr*)&addr,
       (socklen_t*)&addrlen);
-  
+
   std::cout << buffer;
   return;
 }
@@ -126,14 +126,14 @@ unregister_backup_server(int fd, struct sockaddr_in addr, int addrlen) {
   recvfrom(fd, buffer, sizeof(buffer), 0,
       (struct sockaddr*)&addr,
       (socklen_t*)&addrlen);
-  
+
   std::cout << buffer;
   return;
 }
 
 void
 exit_backup_server(int signum) {
-  get_central_server_udp(cs_udp_fd, cs_udp_addr, cs_host, cs_addrlen, CSname, CSport); 
+  get_central_server_udp(cs_udp_fd, cs_udp_addr, cs_host, cs_addrlen, CSname, CSport);
   unregister_backup_server(cs_udp_fd, cs_udp_addr, cs_addrlen);
   close(cs_udp_fd);
   exit(EXIT_SUCCESS);
@@ -147,21 +147,21 @@ add_user(std::string msg) {
   user = msg.substr(4, 5);
 
   write_to_file_append("bs_user_list.txt", auth);
-  mkdir(user.c_str(), 0700);  
+  mkdir(user.c_str(), 0700);
 
   auth_reply = "LUR OK\n";
   sendto(bs_udp_fd, auth_reply.c_str(), auth_reply.size(), 0,
       (struct sockaddr*)&cs_udp_client_addr,
       cs_client_addr_len);
-  return;  
+  return;
 }
 
 void
 get_user_file_list(std::string msg) {
   int space;
   std::ifstream file;
-  std::string user, dir, lsf_reply, line, files; 
-  
+  std::string user, dir, lsf_reply, line, files;
+
   space = msg.find(" ", 4);
   user = msg.substr(4, space - 4);
   dir = msg.substr(space+1, (msg.size() - (space+1))-1);
@@ -188,7 +188,7 @@ auth_user() {
   read_msg(client_fd, 1);
   pass = read_msg(client_fd, 8);
   read_msg(client_fd, 1);
-  
+
   response = find_user_and_check_pass("bs_user_list.txt", user, pass);
   active_user = user;
   write_msg(client_fd, response);
@@ -202,10 +202,10 @@ receive_user_files() {
   std::string upl_reply;
   //WE NEED TO READ TRAILING " " FROM USER PROTOCOL MSG
   read_msg(client_fd, 1);
-  
+
   dir = read_string(client_fd);
   N = stoi(read_string(client_fd));
-  
+
   new_dir = active_user+"/"+dir;
   mkdir(new_dir.c_str(), 0700);
 
@@ -220,17 +220,17 @@ receive_user_files() {
     date = read_string(client_fd);
     time = read_string(client_fd);
     size = read_string(client_fd);
-    
-    line = filename+" "+date+" "+time+" "+size+"\n"; 
+
+    line = filename+" "+date+" "+time+" "+size+"\n";
     read_file(client_fd, new_dir+"/"+filename, stoi(size));
     read_msg(client_fd, 1);
-    std::cout << "Received: " << filename << std::endl; 
+    std::cout << "Received: " << filename << std::endl;
   }
   std::cout << "Received " << N << " files with success.\n";
-  
+
   upl_reply = "UPR OK\n";
   write_msg(client_fd, upl_reply);
-  return;  
+  return;
 }
 
 void
@@ -247,7 +247,7 @@ send_user_files() {
 
   file.open(path);
   std::getline(file, line);
-  
+
   N = stoi(line); rbr.append(std::to_string(N));
   std::cout << N << std::endl;
   write_msg(client_fd, rbr);
@@ -277,9 +277,8 @@ delete_dir(std::string msg) {
    * tenho de verificar se o user existe?
    * fazer NOK status_reply
   */
-  std::string dirname, user, line;
+  std::string dirname, user;
   std::string status_reply, path;
-  std::ifstream file;
 
   user = msg.substr(4, 5);
   dirname = msg.substr(10, (msg.size() - 1) - 10);
@@ -329,7 +328,7 @@ main(int argc, char **argv) {
         exit(EXIT_FAILURE);
       } else if(clientpid == 0) {
         close(bs_tcp_fd);
-        
+
         protocol = read_msg(client_fd, 3);
         if(protocol.compare("AUT") == 0) {
           auth_user();
@@ -348,9 +347,9 @@ main(int argc, char **argv) {
     }
     close(bs_tcp_fd);
     exit(EXIT_FAILURE);
-    /* PARENT */ 
+    /* PARENT */
   } else {
-    get_central_server_udp(cs_udp_fd, cs_udp_addr, cs_host, cs_addrlen, CSname, CSport); 
+    get_central_server_udp(cs_udp_fd, cs_udp_addr, cs_host, cs_addrlen, CSname, CSport);
     register_backup_server(cs_udp_fd, cs_udp_addr, cs_addrlen);
     close(cs_udp_fd);
 
@@ -362,13 +361,13 @@ main(int argc, char **argv) {
       recvfrom(bs_udp_fd, buffer, sizeof(buffer), 0,
           (struct sockaddr*)&cs_udp_client_addr,
           &cs_client_addr_len);
-      
+
       if(strncmp(buffer, "LSF", 3) == 0) {
-        get_user_file_list(buffer);        
+        get_user_file_list(buffer);
       } else if(strncmp(buffer, "LSU", 3) == 0) {
-        add_user(buffer); 
+        add_user(buffer);
       } else if(strncmp(buffer, "DLB", 3) == 0) {
-        delete_dir(buffer); 
+        delete_dir(buffer);
       }
     }
     close(bs_udp_fd);
