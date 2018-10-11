@@ -1,3 +1,6 @@
+#ifndef UDP_H
+#define UDP_H
+
 #include <iostream>
 #include <csignal>
 #include <fstream>
@@ -22,3 +25,4 @@ void create_central_server_udp(int &fd, struct sockaddr_in &addr,
     int port);
 void get_central_server_udp(int &fd, struct sockaddr_in &addr,
     struct hostent *host, int &addrlen, std::string name, int port);
+#endif

@@ -14,10 +14,16 @@ read_string(int fd) {
   return str;
 }
 
-bool is_number(const std::string& s)
-{
+bool 
+is_number(const std::string& s) {
     return !s.empty() && std::find_if(s.begin(),
         s.end(), [](char c) { return !std::isdigit(c); }) == s.end();
+}
+
+void
+change_file_time(std::string filename, std::string date,
+    std::string time) {
+  return;
 }
 
 void
