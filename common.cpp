@@ -23,6 +23,17 @@ is_number(const std::string& s) {
 void
 change_file_time(std::string filename, std::string date,
     std::string time) {
+  time_t mod_time;
+  std::string date_time;
+  struct utimbuf new_time;
+  struct tm tm;
+
+  date_time = date + " " + time + "\0";
+  strptime(date_time.c_str(), "%d.%m.%Y %H:%M:%S", &tm);
+  mod_time = mktime(&tm);
+  
+  new_time.modtime = mod_time;
+  utime(filename.c_str(), &new_time);
   return;
 }
 

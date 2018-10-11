@@ -412,9 +412,6 @@ update_file_list(int N, int &new_N, std::string file_lst1, std::string file_lst2
   std::size_t front1, back1;
   std::size_t n, safe_pos;
 
-  std::cout << file_lst1;
-  std::cout << file_lst2;
-
   bool copy = false;
   bool diff_names = true;
   bool break1 = false;
@@ -422,7 +419,6 @@ update_file_list(int N, int &new_N, std::string file_lst1, std::string file_lst2
 
   front2 = file_lst2.find(" ");
   n = stoi(file_lst2.substr(0, front2));
-  std::cout << "N:"+std::to_string(n)+'\n';
 
   safe_pos = front2;
   back2 = front2;
@@ -467,11 +463,6 @@ update_file_list(int N, int &new_N, std::string file_lst1, std::string file_lst2
     front1 += 1;
     back1 = front1;
 
-    std::cout << "name1: |"+name1+"|\n";
-    std::cout << "data1: |"+data1+"|\n";
-    std::cout << "time1: |"+time1+"|\n";
-    std::cout << "size1: |"+size1+"|\n\n";
-
     break2 = false;
     front2 = safe_pos;
     back2 = front2;
@@ -513,11 +504,6 @@ update_file_list(int N, int &new_N, std::string file_lst1, std::string file_lst2
 
       back2 = front2;
       front2 += 1;
-
-      std::cout << "name2: |"+name2+"|\n";
-      std::cout << "data2: |"+data2+"|\n";
-      std::cout << "time2: |"+time2+"|\n";
-      std::cout << "size2: |"+size2+"|\n\n";
 
       /*COMPARACOES*/
       if(name1.compare(name2) == 0) {

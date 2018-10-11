@@ -217,16 +217,13 @@ receive_user_files() {
   N = stoi(read_string(client_fd));
 
   new_dir = active_user+"/"+dir;
-  if(mkdir(new_dir.c_str(), 0700) == -1) {
-    perror("mkdir");
-    exit(EXIT_FAILURE);
-  }
+  mkdir(new_dir.c_str(), 0700);
 
   file_list = std::to_string(N) + "\n";
   file_list.clear();
 
   for(int i = 0; i < N; i++) {
-    std::string line;
+    std::string full_path;
     std::string filename, date, time, size;
 
     filename = read_string(client_fd);
@@ -234,9 +231,12 @@ receive_user_files() {
     time = read_string(client_fd);
     size = read_string(client_fd);
 
-    line = filename+" "+date+" "+time+" "+size+"\n";
-    read_file(client_fd, new_dir+"/"+filename, stoi(size));
+    full_path = new_dir+"/"+filename;
+
+    read_file(client_fd, full_path, stoi(size));
+    change_file_time(full_path, date, time);
     read_msg(client_fd, 1);
+    
     std::cout << "Received: " << filename << std::endl;
   }
   std::cout << "Received " << N << " files with success.\n";
