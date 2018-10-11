@@ -13,6 +13,7 @@
 #include <arpa/inet.h>
 #include <errno.h>
 
+std::string recvfrom_with_timeout(int fd, struct sockaddr_in addr, int addrlen, int size);
 void create_backup_server_udp(int &fd, struct sockaddr_in &addr, 
     int port);
 void get_backup_server_udp(int &fd, std::string ip, std::string port, 
