@@ -28,5 +28,5 @@ clean:
 trash:
 	rm *.txt
 
-pkg:
-	tar -cvf RC-Cloud-Backup_G43.tar *.cpp *.h Makefile
+zip:
+	zip proj_43.zip *.cpp *.h Makefile

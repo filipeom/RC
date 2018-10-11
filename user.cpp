@@ -187,7 +187,7 @@ process_files_reply(std::string &ip, std::string &port, int &N) {
     time = read_string(cs_tcp_fd);
     size = read_string(cs_tcp_fd);
 
-    line = std::to_string(i+1)+": " + filename+" "+date+" "+time+" "+size+"\n";
+    line = std::to_string(i+1)+": " +date+" "+time+" "+size+ " " +filename +"\n";
     files.append(line);
   }
   return files;
@@ -596,6 +596,8 @@ main(int argc, char **argv) {
       logout();
     } else if(input.compare("exit") == 0) {
       exit(EXIT_SUCCESS);
+    } else {
+      std::cout << "[ERR] Unknown command: \"" + input + "\"\n";
     }
   }
   exit(EXIT_FAILURE);
