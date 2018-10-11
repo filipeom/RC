@@ -146,9 +146,12 @@ register_backup_server(int fd, struct sockaddr_in addr,
     reply = "RGR OK\n";
   }
 
-  sendto(fd, reply.c_str(), reply.size(), 0,
+  if(sendto(fd, reply.c_str(), reply.size(), 0,
       (struct sockaddr*)&addr,
-      addrlen);
+      addrlen) == -1) {
+    perror("sendto");
+    exit(EXIT_FAILURE);
+  }
   return;
 }
 
@@ -172,8 +175,11 @@ unregister_backup_server(int fd, struct sockaddr_in addr,
 
   if((inet_pton(AF_INET, ip.c_str(), dest) == 0) || !is_number(port)) {
     reply = "UAR ERR\n";
-    sendto(fd, reply.c_str(), reply.size(), 0,
-        (struct sockaddr*) &addr, addrlen);
+    if(sendto(fd, reply.c_str(), reply.size(), 0,
+        (struct sockaddr*) &addr, addrlen) == -1) {
+      perror("sendto");
+      exit(EXIT_FAILURE);
+    }
     return;
   }
 
@@ -194,9 +200,11 @@ unregister_backup_server(int fd, struct sockaddr_in addr,
     reply.clear(); reply = "UAR NOK\n";
   }
 
-  sendto(fd, reply.c_str(), reply.size(), 0,
-      (struct sockaddr*) &addr, addrlen);
-
+  if(sendto(fd, reply.c_str(), reply.size(), 0,
+      (struct sockaddr*) &addr, addrlen) == -1) {
+    perror("sendto");
+    exit(EXIT_FAILURE);
+  }
   return;
 }
 
@@ -332,7 +340,6 @@ get_bs_for_user(std::string &ip, std::string &port) {
   srand(time(NULL));
   int random_number = rand() % num_linhas + 1;
 
-  std::cout << "lines: " << num_linhas << "rnd: " << random_number << std::endl;
   file.open("bs_list.txt");
   for(int i = 0; i < random_number; i++){
       std::getline(file, line);
@@ -347,19 +354,19 @@ get_bs_for_user(std::string &ip, std::string &port) {
 void
 register_user_in_bs(std::string msg, std::string ip,
     std::string port) {
-  char buffer[128] = {0};
-  std::string protocol;
+  std::string reply, protocol;
 
   protocol = "LSU " + msg+"\n";
   get_backup_server_udp(bs_udp_fd, ip, port,
       bs_udp_addr, bs_addrlen);
-  sendto(bs_udp_fd, protocol.c_str(), protocol.size(), 0,
+  if(sendto(bs_udp_fd, protocol.c_str(), protocol.size(), 0,
       (struct sockaddr*)&bs_udp_addr,
-      bs_addrlen);
-  recvfrom(bs_udp_fd, buffer, sizeof(buffer), 0,
-      (struct sockaddr*)&bs_udp_addr,
-      (socklen_t*)&bs_addrlen);
-  std::cout << buffer;
+      bs_addrlen) == -1) {
+    perror("sendto");
+    exit(EXIT_FAILURE);
+  }
+  reply = recvfrom_with_timeout(bs_udp_fd, bs_udp_addr, bs_addrlen, 128);
+  std::cout << reply;
   close(bs_udp_fd);
   return;
 }
@@ -378,20 +385,21 @@ send_client_bs_and_file_list(std::string ip, std::string port,
 std::string
 ask_bs_for_files(std::string dir, std::string user, std::string ip,
     std::string port) {
-  char buffer[2048] = {0};
-  std::string protocol;
+  std::string protocol, reply;
 
   protocol = "LSF " + user + " " + dir +"\n";
   get_backup_server_udp(bs_udp_fd, ip, port,
       bs_udp_addr, bs_addrlen);
-  sendto(bs_udp_fd, protocol.c_str(), protocol.size(), 0,
+  if(sendto(bs_udp_fd, protocol.c_str(), protocol.size(), 0,
       (struct sockaddr*)&bs_udp_addr,
-      bs_addrlen);
-  recvfrom(bs_udp_fd, buffer, sizeof(buffer), 0,
-      (struct sockaddr*)&bs_udp_addr,
-      (socklen_t*)&bs_addrlen);
+      bs_addrlen) == -1) {
+    perror("sendto");
+    exit(EXIT_FAILURE);
+  }
+
+  reply = recvfrom_with_timeout(bs_udp_fd, bs_udp_addr, bs_addrlen, 2048);
   close(bs_udp_fd);
-  return buffer;
+  return reply;
 }
 
 std::string
@@ -640,7 +648,7 @@ void
 delete_dir() {
   std::string dirname, bs_ip, bs_port;
   std::string status_reply, protocol;
-  char bs_reply[10] = {0};
+  std::string bs_reply;
   //WE NEED TO READ TRAILING " " FROM USER PROTOCOL MSG
   read_msg(client_fd, 1);
   dirname = read_string(client_fd);
@@ -649,22 +657,24 @@ delete_dir() {
     get_backup_server_udp(bs_udp_fd, bs_ip, bs_port,
         bs_udp_addr, bs_addrlen);
     protocol = "DLB " + active_user + " " + dirname + "\n";
-    sendto(bs_udp_fd, protocol.c_str(), protocol.size(), 0,
+  
+    if(sendto(bs_udp_fd, protocol.c_str(), protocol.size(), 0,
         (struct sockaddr*) &bs_udp_addr,
-        bs_addrlen);
-    recvfrom(bs_udp_fd, bs_reply, sizeof(bs_reply), 0,
-        (struct sockaddr*) &bs_udp_addr,
-        (socklen_t*) &bs_addrlen);
+        bs_addrlen) == -1) {
+      perror("sendto");
+      exit(EXIT_FAILURE);
+    }
+    bs_reply = recvfrom_with_timeout(bs_udp_fd, bs_udp_addr, bs_addrlen, 10);
     close(bs_udp_fd);
 
-    if(strncmp(bs_reply, "DBR", 3) == 0) {
-      if(strncmp(bs_reply+4, "OK", 2) == 0) {
+    if(bs_reply.compare(0, 3,"DBR") == 0) {
+      if(bs_reply.compare(4,2, "OK") == 0) {
         delete_user_dir_from_file(active_user, dirname);
         status_reply = "DDR OK\n";
         write_msg(client_fd, status_reply);
         return;
       }
-      if(strncmp(bs_reply+4, "NOK", 3) == 0) {
+      if(bs_reply.compare(4, 3, "NOK") == 0) {
         status_reply = "DDR NOK\n";
         write_msg(client_fd, status_reply);
         return;
@@ -743,9 +753,12 @@ main(int argc, char **argv) {
       char buffer[128] = {0};
 
       bs_client_addr_len = sizeof(bs_udp_client_addr);
-      recvfrom(cs_udp_fd, buffer, sizeof(buffer), 0,
+      if(recvfrom(cs_udp_fd, buffer, sizeof(buffer), 0,
           (struct sockaddr*)&bs_udp_client_addr,
-          &bs_client_addr_len);
+          &bs_client_addr_len) == -1) {
+        perror("recvfrom");
+        exit(EXIT_FAILURE);
+      }
 
       if(strncmp(buffer, "REG", 3) == 0) {
         register_backup_server(cs_udp_fd, bs_udp_client_addr,

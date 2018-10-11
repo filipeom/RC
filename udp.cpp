@@ -2,23 +2,27 @@
 
 std::string
 recvfrom_with_timeout(int fd, struct sockaddr_in addr, int addrlen, int size) {
+  int ret;
   struct timeval tv;
   char buffer[size] = {0};
   std::string msg;
 
-  tv.tv_sec = 0;
-  tv.tv_usec = 100000;
+  tv.tv_sec = 2;
+  tv.tv_usec = 500000;
   
   if(setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0) {
     perror("setsockopt");
     exit(EXIT_FAILURE);
   }
-  
-  if(recvfrom(fd, buffer, sizeof(buffer), 0,
-        (struct sockaddr*)&addr,
-        (socklen_t*)&addrlen) == 0) {
+  ret = recvfrom(fd, buffer, sizeof(buffer), 0,
+      (struct sockaddr*)&addr, 
+      (socklen_t*)&addrlen);
+  if(ret == 0) {
     std::cout << "Timeout: unable to receive udp message.\n";     
-  } 
+  } else if (ret == -1) {
+    perror("recvfrom");
+    exit(EXIT_FAILURE);
+  }
   msg.assign(buffer, strlen(buffer));
   return msg;
 }
