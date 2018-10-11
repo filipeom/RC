@@ -295,7 +295,7 @@ delete_dir(std::string msg) {
   path.clear(); path = user;
   if(is_directory_empty(path.c_str())) {
     std::cout << "Deleting: "<< path << "...\n";
-    if(remove(path.c_str()) == false) {
+    if(remove(path.c_str()) == -1) {
       status_reply.clear(); status_reply = "DBR NOK\n";
     }
     std::cout << "Removing user: \"" << user << "\"...\n";
