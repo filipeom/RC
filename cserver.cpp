@@ -410,7 +410,7 @@ update_file_list(int N, int &new_N, std::string file_lst1, std::string file_lst2
 
   std::size_t front2, back2;
   std::size_t front1, back1;
-  std::size_t n, safe_pos;
+  std::size_t safe_pos;
 
   bool copy = false;
   bool diff_names = true;
@@ -418,8 +418,7 @@ update_file_list(int N, int &new_N, std::string file_lst1, std::string file_lst2
   bool break2 = false;
 
   front2 = file_lst2.find(" ");
-  n = stoi(file_lst2.substr(0, front2));
-
+  
   safe_pos = front2;
   back2 = front2;
   front2 += 1;
@@ -514,7 +513,6 @@ update_file_list(int N, int &new_N, std::string file_lst1, std::string file_lst2
       }
     }
     if(copy || diff_names) {
-      std::cout << "copy\n";
       new_N += 1;
       line.clear();
       line = " " + name1 + " " + data1 + " " + time1 + " " + size1;
@@ -524,7 +522,6 @@ update_file_list(int N, int &new_N, std::string file_lst1, std::string file_lst2
     diff_names = true;
   }
   update_file_list.append("\n");
-  std::cout << update_file_list;
   return update_file_list;
 }
 
