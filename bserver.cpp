@@ -241,39 +241,45 @@ receive_user_files() {
 
 void
 send_user_files() {
-  std::ifstream file;
-  int N;
-  std::string path, dirname, line, rbr;
+  DIR *dir;
+  struct dirent *ent;
+  struct stat stats;
+  std::string files;
+  std::string path, dirname, rbr;
+  std::string aux, N;
 
   //WE NEED TO READ TRAILING " " FROM USER PROTOCOL MSG
   read_msg(client_fd, 1);
   dirname = read_string(client_fd);
   rbr = "RBR ";
-  path = active_user+"/"+dirname+".txt";
 
-  file.open(path);
-  std::getline(file, line);
-
-  N = stoi(line); rbr.append(std::to_string(N));
-  std::cout << N << std::endl;
+  path = active_user+"/"+dirname;
+  aux = get_files(path);
+  int space = aux.find(" ");
+  N = aux.substr(0, space);
+  rbr.append(N);
   write_msg(client_fd, rbr);
 
-  for(int i = 0; i < N; i++) {
-    int space;
-    std::string filename, size;
+  if((dir = opendir(path.c_str())) != NULL) {
+    while((ent = readdir(dir)) != NULL) {
+      std::string filename = ent->d_name;
+      if(filename.compare(".") && filename.compare("..")) {
+        char date_time[20];
+        std::string full_path, file_stats, file_size;
+        write_msg(client_fd, " ");
 
-    std::getline(file, line);
-    space = line.find(" ");
-    filename = line.substr(0, space);
-    size = line.substr(space+21, line.size()-(space+21));
-
-    write_msg(client_fd, " ");
-    path.clear(); path = active_user+"/"+dirname+"/"+filename;
-    write_msg(client_fd, line + " ");
-    std::cout << "Sending: " +filename+"...\n";
-    write_file(client_fd, path, stoi(size));
+        full_path = path + "/" + filename;
+        stat(full_path.c_str(), &stats);
+        strftime(date_time, 20, "%d.%m.%Y %H:%M:%S",
+            localtime(&(stats.st_mtime)));
+        file_size = std::to_string(stats.st_size);
+        file_stats = filename + " " + date_time + " " + file_size + " ";
+        write_msg(client_fd, file_stats);
+        std::cout << "Sending: " + filename + "...\n";
+        write_file(client_fd, full_path, (int)stats.st_size);
+      } 
+    }
   }
-  file.close();
   write_msg(client_fd, "\n");
   return;
 }
@@ -281,7 +287,7 @@ void
 delete_dir(std::string msg) {
   /*TODO-
    * fazer NOK status_reply
-  */
+   */
   std::string dirname, user;
   std::string status_reply, path;
 
