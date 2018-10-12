@@ -4,79 +4,64 @@ Simple networking application that allows users to backup the contetns of a
 specified local directory using a cloud service.
 ## Getting Started
 
-To install the program simply download the source code:
-```
-git clone https://github.com/filipeom/RC.git
-```
-To compile the program run:
+Compile the source code with:
 ```
 make all
 ```
 ### Prerequisites
 
-You will need the gcc compiler:
-
-Arch linux:
-```
-sudo pacman -S gcc
-```
+A linux system to run the binaries.
 
 ## Running and testing the program
 
-To run the program simply run the user application:
+To start the program simply run the user application as:
 ```
 ./user [-n CSname] [-p CSport]
  ```
-CSname: Central server hostname, if this argument is not specified the program 
-assumes the central server is being hosted on the same machine as the user 
-application is running.
+Where:
+* **CSname**-*optional*: is the name of the machine where the central server(CS) runs.
+If this argument is omitted, the CS should be running on the same machine.
 
-CSport: The port in which the central server operates, as with the CSname argument.
-If this argument is not specified the program assumes the central server is being
-run on the same machine as the user application, and uses the default port: 58043.
+* **CSport**-*optional*: is the well-known port where the CS server accepts user requests,
+in TCP. If omitted, it assumes the value is 58043.
 
+Once the user program is running, it waits for the user to indicate the action to take, notably:
+```
+login user pass //Authenticates user with CS.
+deluser         //Deletes the user that has previously logged in successfully.
+backup dir      //Uploads files from - dir.
+restore dir     //Downloads files from - dir.
+dirlist         //Lists all the directories the user has saved in the cloud.
+delete dir      //Deletes files from - dir.
+logout          //Allows using the appliction with a different username.
+exit            //The user application terminates.
+```
 ### Testing the system:
 
-To test the system you first need to run the central server application:
+To test the system you first need to run the central server application as:
 ```
 ./CS [-p CSport]
 ```
-CSport: The central server binds and listens on this port for user connections. If 
-this argument is not specified, the program assumes the default port of: 58043.
+where:
+* **CSport**-*optional*: is the well-known port where the CS server accepts requests, in 
+TCP. If omitted, it assumes the value 58043.
 
-After running the central server you need to register backup servers:
+After running the central server you need to register backup servers as:
 ```
 ./BS [-n CSname] [-p CSport] [-b BSport]
 ```
-CSname: Central Server hostname, if this argument is not specified the program
-assumes the central server is being hosted on the same machine as the backup 
-server application.
-
-CSport: The port in which the central server operates, as with the CSname argument, if
-this argument is not specified the program assumes the central server is being
-run on the same machine as the user application, and uses the default port: 58043.
-
-### And coding style tests
-
-Explain what these tests test and why
-
-```
-Give an example
-```
-
-## Deployment
-
-Add additional notes about how to deploy this on a live system
+where:
+* **BSport**-*optional*: is the well-known port where the BS server accepts TCP requests 
+from the user application. If omitted, it assumes the value 59043.
+* **CSname**-*optional*: is the name of the machine where the central server (CS) runs.
+If this argument is omitted, the CS should be running on the same machine.
+* **CSport**-*optional*: is the well-known port where the CS server accepts requests. 
+If omitted, it assumes the value 58043.
 
 ## Built With
 
-* [Dropwizard](http://www.dropwizard.io/1.0.2/docs/) - The web framework used
-* [Maven](https://maven.apache.org/) - Dependency Management
-* [ROME](https://rometools.github.io/rome/) - Used to generate RSS Feeds
-
-## Versioning
-
-We use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/your/project/tags). 
+* [Vim](https://www.vim.org/) - The editor used by the authors.
+* [amix/vimrc](https://github.com/amix/vimrc) - Essential vim configuration to facilitate development.
 
 ## Authors
 
