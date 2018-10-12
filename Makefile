@@ -29,4 +29,4 @@ trash:
 	rm *.txt
 
 zip:
-	zip proj_43.zip *.cpp *.h Makefile
+	zip proj_43.zip *.cpp *.h Makefile README.md
