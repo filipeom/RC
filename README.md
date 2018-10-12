@@ -1,6 +1,6 @@
 # RC Cloud Backup
 
-Simple networking application that allows users to backup the contetns of a 
+Simple networking application that allows users to backup the contents of a 
 specified local directory using a cloud service.
 ## Getting Started
 
