@@ -65,7 +65,7 @@ If omitted, it assumes the value 58043.
 
 ## Authors
 
-* **Filipe Marques** - *Project Development* - [filipeom](https://github.com/filipeom)
-* **Jorge Martins** - *Project Development* - [Jorgecmartins](https://github.com/Jorgecmartins)
-* **Paulo Dias** - *Project Development* - [PauloACDias](https://github.com/PauloACDias)
+* **Filipe Marques** - *Developer* - [filipeom](https://github.com/filipeom)
+* **Jorge Martins** - *Developer* - [Jorgecmartins](https://github.com/Jorgecmartins)
+* **Paulo Dias** - *Developer* - [PauloACDias](https://github.com/PauloACDias)
 
