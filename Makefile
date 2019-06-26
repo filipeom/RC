@@ -24,3 +24,9 @@ common.o: common.h common.cpp
 
 clean:
 	rm CS BS user *.txt *.o
+
+trash:
+	rm *.txt
+
+zip:
+	zip proj_43.zip *.cpp *.h Makefile README.md

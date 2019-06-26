@@ -43,6 +43,85 @@ write_msg(int fd, std::string msg) {
 }
 
 void
+write_file(int fd, std::string file, int size) {
+  int filefd;
+  int nleft, nread = 0, nwritten = 0;
+  char buffer[size+1];
+  char *ptr;
+
+  if((filefd = open(file.c_str(), O_RDONLY)) == -1) {
+    perror("open");
+    exit(EXIT_FAILURE);
+  }
+
+  ptr = buffer;
+  nleft = size;
+  while(nleft > 0) {
+    if((nread = read(filefd, ptr, nleft)) == -1) {
+      fprintf(stderr, "read_file: could not read file.\n");
+      exit(EXIT_FAILURE);
+    } else if (nread == 0) {
+      break;
+    } 
+    nleft -= nread;
+    ptr += nread;
+  }
+  close(filefd);
+
+  ptr = buffer;
+  nleft = size;
+  while(nleft > 0) {
+     if((nwritten = write(fd, ptr, nleft)) <= 0) {
+      fprintf(stderr, "write: write_file\n");
+      exit(EXIT_FAILURE);
+    }
+    nleft -= nwritten;
+    ptr += nwritten;
+  }
+  return;
+}
+
+void
+read_file(int fd, std::string file, int size) {
+  int filefd;
+  int nleft, nread = 0, nwritten = 0;
+  char buffer[size+1];
+  char *ptr;
+
+  ptr = buffer;
+  nleft = size;
+  while(nleft > 0) {
+    if((nread = read(fd, ptr, nleft)) == -1) {
+      fprintf(stderr, "read_file: could not read file.\n");
+      exit(EXIT_FAILURE);
+    } else if (nread == 0) {
+      break;
+    } 
+    nleft -= nread;
+    ptr += nread;
+  }
+  
+  if((filefd = open(file.c_str(), O_WRONLY | O_CREAT | O_TRUNC,
+                S_IRUSR | S_IWUSR)) == -1) {
+    perror("open");
+    exit(EXIT_FAILURE);
+  }
+  
+  ptr = buffer;
+  nleft = size;
+  while(nleft > 0) {
+     if((nwritten = write(filefd, ptr, nleft)) <= 0) {
+      fprintf(stderr, "write: write_file\n");
+      exit(EXIT_FAILURE);
+    }
+    nleft -= nwritten;
+    ptr += nwritten;
+  }
+  close(filefd);
+  return;
+}
+
+void
 create_central_server_tcp(int &fd, struct sockaddr_in &addr, int port) {
   if ((fd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
     perror("socket");
