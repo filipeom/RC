@@ -14,9 +14,9 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <errno.h>
-#include "tcp.h"
-#include "udp.h"
-#include "common.h"
+#include <tcp.h>
+#include <udp.h>
+#include <common.h>
 #define PORT 58043
 
 int CSport = 0;

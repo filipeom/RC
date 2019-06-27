@@ -12,9 +12,9 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <errno.h>
-#include "tcp.h"
-#include "udp.h"
-#include "common.h"
+#include <tcp.h>
+#include <udp.h>
+#include <common.h>
 #define PORT_CS 58043
 #define PORT_BS 59043
 

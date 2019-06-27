@@ -12,8 +12,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
-#include "tcp.h"
-#include "common.h"
+#include <tcp.h>
+#include <common.h>
 #define PORT 58043
 
 int CSport = 0;
