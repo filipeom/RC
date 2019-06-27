@@ -3,10 +3,15 @@
 Simple networking application that allows users to backup the contents of a 
 specified local directory using a cloud service.
 ## Getting Started
+Go to each module, in order:
 
-Compile the source code with:
+* [Central Server](central_server/) - The registry server 
+* [Backup Server](backup_server/) - The file backup server
+* [User](user/) - The user client
+
+And compile the source code with:
 ```
-make all
+make
 ```
 ### Prerequisites
 
@@ -61,7 +66,6 @@ If omitted, it assumes the value 58043.
 ## Built With
 
 * [Vim](https://www.vim.org/) - The editor used by the authors.
-* [amix/vimrc](https://github.com/amix/vimrc) - Essential vim configuration to facilitate development.
 
 ## Authors
 
